@@ -125,7 +125,7 @@ Component({
 
       // 标签
       ctx.fillStyle = '#9E9484'
-      ctx.font = `${size * 0.045}px sans-serif`
+      ctx.font = `${size * 0.045}px 'KaiTi', 'STKaiti', '楷体', serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       const labelR = r + size * 0.1

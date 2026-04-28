@@ -97,7 +97,7 @@ Page({
     ctx.fill()
 
     // 风味标签
-    ctx.font = `bold ${size * 0.05}px sans-serif`
+    ctx.font = `bold ${size * 0.05}px 'KaiTi', 'STKaiti', '楷体', serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = goldLight
@@ -105,13 +105,13 @@ Page({
     ctx.fillText(topFlavor, size / 2, size * 0.47)
 
     // 副标签
-    ctx.font = `${size * 0.034}px sans-serif`
+    ctx.font = `${size * 0.034}px 'KaiTi', 'STKaiti', '楷体', serif`
     ctx.fillStyle = textSec
     const subFlavors = flavors.slice(1).join(' · ')
     ctx.fillText(subFlavors, size / 2, size * 0.54)
 
     // 描述文字（换行处理）
-    ctx.font = `${size * 0.028}px sans-serif`
+    ctx.font = `${size * 0.028}px 'KaiTi', 'STKaiti', '楷体', serif`
     ctx.fillStyle = 'rgba(245,240,232,0.6)'
     this._wrapText(ctx, transcript, size / 2, size * 0.63, size - 64, size * 0.04)
 
@@ -128,13 +128,13 @@ Page({
     ctx.fillStyle = 'rgba(201,168,76,0.4)'
     ctx.fillRect(24, size - 72, 32, 32)
     ctx.fillStyle = '#0D0D0D'
-    ctx.font = `bold ${size * 0.02}px sans-serif`
+    ctx.font = `bold ${size * 0.02}px 'KaiTi', 'STKaiti', '楷体', serif`
     ctx.textAlign = 'center'
     ctx.fillText('LOGO', 40, size - 56)
 
     // 俱乐部名（中）
     ctx.fillStyle = textSec
-    ctx.font = `${size * 0.028}px sans-serif`
+    ctx.font = `${size * 0.028}px 'KaiTi', 'STKaiti', '楷体', serif`
     ctx.textAlign = 'center'
     ctx.fillText(CLUB_NAME, size / 2, size - 56)
 
@@ -143,7 +143,7 @@ Page({
     ctx.lineWidth = 1
     ctx.strokeRect(size - 60, size - 76, 40, 40)
     ctx.fillStyle = textSec
-    ctx.font = `${size * 0.018}px sans-serif`
+    ctx.font = `${size * 0.018}px 'KaiTi', 'STKaiti', '楷体', serif`
     ctx.textAlign = 'center'
     ctx.fillText('小程序码', size - 40, size - 56)
   },

@@ -37,13 +37,13 @@ page {
   /* tab-bar 固定高度 = 内容区 112rpx + 设备底部安全区 */
   --tab-bar-height: calc(112rpx + env(safe-area-inset-bottom));
 
-  /* ── 奢侈品字体方案 ──
-     · 衬线体（英文标题/数字）：Georgia → Times → 系统 serif
-     · 无衬线体（正文/UI）：PingFang SC → Helvetica → 系统 sans-serif
-     · 中文衬线（展示文字）：STSong / Songti SC（宋体）
+  /* ── 楷体字体方案 ──
+     · 中文：KaiTi / STKaiti / 楷体
+     · 英文/数字回退：serif / sans-serif
+     
   */
-  --font-serif:  'Georgia', 'Times New Roman', 'STSong', 'Songti SC', 'SimSun', serif;
-  --font-body:   -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  --font-serif:  'KaiTi', 'STKaiti', '楷体', 'Kai', serif;
+  --font-body:   'KaiTi', 'STKaiti', '楷体', 'Kai', sans-serif;
 
   background: var(--bg-base);
   color: var(--text-primary);
@@ -97,7 +97,7 @@ page {
   background: rgba(201, 168, 76, 0.08);
 }
 
-/* ── 区块标题（使用衬线体增强奢侈品感） ── */
+/* ── 区块标题（使用楷体增强东方韵味） ── */
 .section-title {
   font-size: 36rpx;
   font-weight: 700;
