@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "navigation-bar": "/components/navigation-bar/navigation-bar",
+    "flavor-radar":   "/components/flavor-radar/flavor-radar",
+    "pairing-chip":   "/components/pairing-chip/pairing-chip"
+  },
+  "navigationStyle": "custom"
+}

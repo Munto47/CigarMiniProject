@@ -1,0 +1,134 @@
+.q-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  padding: var(--space-lg);
+  min-height: 600rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.q-type-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(201,168,76,0.1);
+  border: 1rpx solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 6rpx 20rpx;
+  margin-bottom: var(--space-md);
+  align-self: flex-start;
+}
+
+.q-type-text {
+  font-size: 20rpx;
+  color: var(--color-gold-dim);
+  letter-spacing: 0.1em;
+}
+
+.q-text {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin-bottom: var(--space-lg);
+  flex: 1;
+}
+
+.q-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: var(--space-lg);
+}
+
+.q-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 28rpx var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  background: var(--bg-elevated);
+  transition: all 150ms ease;
+}
+
+.q-option--selected {
+  border-color: var(--border-strong);
+  background: rgba(201, 168, 76, 0.08);
+  transform: scale(0.98);
+  box-shadow: inset 0 4rpx 16rpx rgba(0, 0, 0, 0.45);
+}
+
+.q-option:active {
+  transform: scale(0.98);
+}
+
+.q-option__check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 18rpx;
+  border: 2rpx solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 150ms ease;
+}
+
+.q-option__check--active {
+  border-color: var(--color-gold);
+  background: rgba(201,168,76,0.15);
+}
+
+.q-option__check-inner {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 8rpx;
+  background: var(--color-gold);
+}
+
+.q-option__text {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.q-option--selected .q-option__text {
+  color: var(--color-gold-light);
+}
+
+.q-next {
+  width: 100%;
+  font-size: 30rpx;
+  padding: 28rpx;
+  box-sizing: border-box;
+}
+
+.q-next--disabled {
+  opacity: 0.4;
+}
+
+/* ── 选项轻触反馈动效 ── */
+@keyframes optionBounce {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(0.97); }
+  70%  { transform: scale(1.02); }
+  100% { transform: scale(1);    }
+}
+
+/* 选中状态下的闪动：起止均为 0.98，保持下压 */
+@keyframes optionBounceSelected {
+  0%   { transform: scale(0.98); }
+  35%  { transform: scale(0.95); }
+  70%  { transform: scale(1.00); }
+  100% { transform: scale(0.98); }
+}
+
+.q-option--flash {
+  animation: optionBounce 260ms ease-out;
+}
+
+.q-option--selected.q-option--flash {
+  animation: optionBounceSelected 260ms ease-out;
+}

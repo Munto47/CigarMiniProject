@@ -1,0 +1,88 @@
+<navigation-bar
+  title="品鉴记录"
+  back="{{false}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<view class="history-page">
+
+  <!-- 筛选 Tab 栏 -->
+  <scroll-view class="filter-bar" scroll-x>
+    <view class="filter-inner">
+      <view
+        wx:for="{{filterTabs}}"
+        wx:key="index"
+        class="filter-tab {{activeFilter === index ? 'filter-tab--active' : ''}}"
+        bindtap="switchFilter"
+        data-index="{{index}}"
+      >
+        <text class="filter-tab__text">{{item}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 历史列表 -->
+  <scroll-view class="history-list" scroll-y>
+    <view wx:for="{{groups}}" wx:key="date" class="history-group">
+      <!-- 日期分组 -->
+      <view class="group-header">
+        <text class="group-date">{{item.date}}</text>
+        <view class="group-divider"></view>
+      </view>
+
+      <!-- 记录列表 -->
+      <view
+        wx:for="{{item.records}}"
+        wx:key="id"
+        wx:for-item="record"
+        class="history-item"
+        bindtap="viewDetail"
+        data-id="{{record.id}}"
+      >
+        <!-- 图片 -->
+        <view class="h-item__img">
+          <view class="h-mini-cigar">
+            <view class="h-mini-body"></view>
+            <view class="h-mini-tip"></view>
+          </view>
+        </view>
+
+        <!-- 信息 -->
+        <view class="h-item__info">
+          <view class="h-item__header">
+            <text class="h-item__name">{{record.name}}</text>
+            <view class="rating-badge">
+              <text>{{record.rating}}</text>
+            </view>
+          </view>
+          <text class="h-item__origin">{{record.origin}}</text>
+          <view class="h-item__tags">
+            <view wx:for="{{record.tags}}" wx:key="*this" wx:for-item="tag" class="chip">
+              <text>{{tag}}</text>
+            </view>
+            <!-- 类型标签 -->
+            <view class="type-chip type-chip--{{record.type}}">
+              <text class="type-chip__text">
+                {{record.type === 'purchased' ? '已购' : record.type === 'poster' ? '海报' : '品鉴'}}
+              </text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 操作 -->
+        <view class="h-item__actions">
+          <view class="h-action-btn" catchtap="shareRecord" data-id="{{record.id}}">
+            <text class="h-action-text">分享</text>
+          </view>
+          <view class="h-action-btn h-action-btn--gold" catchtap="reorder" data-id="{{record.id}}">
+            <text class="h-action-text h-action-text--gold">再购</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="tab-safe-bottom"></view>
+  </scroll-view>
+
+</view>

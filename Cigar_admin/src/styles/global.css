@@ -1,0 +1,204 @@
+:root {
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8C97A;
+  --color-gold-dim: #7A6430;
+  --bg-base: #0D0D0D;
+  --bg-surface: #161616;
+  --bg-elevated: #1F1F1F;
+  --bg-overlay: rgba(0, 0, 0, 0.72);
+  --text-primary: #F5F0E8;
+  --text-secondary: #9E9484;
+  --text-disabled: #4A4540;
+  --border-subtle: rgba(201, 168, 76, 0.15);
+  --border-strong: rgba(201, 168, 76, 0.45);
+  --color-success: #4CAF7A;
+  --color-warning: #E8A04C;
+  --color-danger: #C94C4C;
+  --shadow-gold: 0 4px 24px rgba(201, 168, 76, 0.18);
+  --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 168, 76, 0.5);
+}
+
+/* 通用页面容器 */
+.page-container {
+  padding: 24px;
+  min-height: 100%;
+}
+
+/* 金色渐变按钮 */
+.gold-btn {
+  background: linear-gradient(135deg, var(--color-gold-light) 0%, var(--color-gold) 50%, var(--color-gold-dim) 100%);
+  border: none;
+  color: #1A1208;
+  font-weight: 600;
+}
+
+.gold-btn:hover {
+  background: linear-gradient(135deg, #F0D48A 0%, var(--color-gold-light) 50%, var(--color-gold) 100%) !important;
+  color: #1A1208 !important;
+}
+
+/* 统计卡片 */
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-gold);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+/* 页面标题 */
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-gold);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Ant Design 全局覆写 */
+.ant-table-wrapper .ant-table {
+  background: var(--bg-surface);
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom-color: rgba(201, 168, 76, 0.08);
+}
+
+.ant-card {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+.ant-modal-content {
+  background: var(--bg-surface) !important;
+}
+
+.ant-modal-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.ant-modal-title {
+  color: var(--color-gold) !important;
+}
+
+.ant-drawer-header {
+  background: var(--bg-elevated) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.ant-drawer-title {
+  color: var(--color-gold) !important;
+}
+
+.ant-form-item-label > label {
+  color: var(--text-secondary) !important;
+}
+
+/* 状态标签 */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: rgba(232, 160, 76, 0.15);
+  color: var(--color-warning);
+  border: 1px solid rgba(232, 160, 76, 0.3);
+}
+
+.status-success {
+  background: rgba(76, 175, 122, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(76, 175, 122, 0.3);
+}
+
+.status-danger {
+  background: rgba(201, 76, 76, 0.15);
+  color: var(--color-danger);
+  border: 1px solid rgba(201, 76, 76, 0.3);
+}
+
+.status-default {
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--color-gold);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+}
+
+/* 图表容器 */
+.chart-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}

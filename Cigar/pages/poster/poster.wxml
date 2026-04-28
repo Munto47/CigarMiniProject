@@ -1,0 +1,78 @@
+<navigation-bar
+  title="风味海报"
+  back="{{true}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<scroll-view class="poster-page" scroll-y>
+
+  <!-- ══ 录音阶段 ══ -->
+  <view wx:if="{{stage === 'record'}}" class="record-stage">
+    <view class="record-stage__header">
+      <text class="record-eyebrow">AI 生成 · 风味海报</text>
+      <text class="record-title">用语言描述您的品鉴</text>
+      <text class="record-desc">按住录音，描述您在品鉴这支雪茄时的感受与联想</text>
+    </view>
+
+    <!-- 录音波形组件 -->
+    <view class="wave-wrap">
+      <recording-wave bindstop="onRecordStop" max-duration="{{30}}" />
+    </view>
+
+    <!-- 引导提示 -->
+    <view class="tips-section">
+      <text class="tips-title">描述参考</text>
+      <view class="tip-item">
+        <text class="tip-icon">◆</text>
+        <text class="tip-text">「入口时感受到一股明显的木质香……」</text>
+      </view>
+      <view class="tip-item">
+        <text class="tip-icon">◆</text>
+        <text class="tip-text">「中段出现了淡淡的咖啡和可可风味……」</text>
+      </view>
+      <view class="tip-item">
+        <text class="tip-icon">◆</text>
+        <text class="tip-text">「尾段回甘绵长，带有奶油丝滑的余韵……」</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ══ 海报预览阶段 ══ -->
+  <view wx:if="{{stage === 'preview'}}" class="preview-stage">
+    <view class="preview-header">
+      <text class="preview-title">您的专属风味海报</text>
+      <text class="preview-desc">AI 已生成，可分享或保存到相册</text>
+    </view>
+
+    <!-- 1:1 海报画布 -->
+    <view class="poster-wrap">
+      <canvas
+        type="2d"
+        id="posterCanvas"
+        class="poster-canvas"
+        style="width: {{canvasWidth}}px; height: {{canvasHeight}}px"
+      />
+    </view>
+
+    <!-- 语音转录文字预览 -->
+    <view class="transcript-wrap">
+      <text class="transcript-label">您的描述</text>
+      <text class="transcript-text">{{transcript}}</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="preview-actions">
+      <view class="gold-btn save-btn {{savingPoster ? 'save-btn--loading' : ''}}" bindtap="savePoster">
+        <text>{{savingPoster ? '保存中...' : '保存海报到相册'}}</text>
+      </view>
+      <view class="ghost-btn" bindtap="reRecord">
+        <text>重新录制</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-padding"></view>
+</scroll-view>
+
+<custom-tab-bar />

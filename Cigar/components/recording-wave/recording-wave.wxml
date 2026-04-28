@@ -1,0 +1,45 @@
+<view class="wave-container">
+  <!-- 倒计时 -->
+  <view class="countdown-row">
+    <text class="countdown-text {{recording ? 'countdown-text--active' : ''}}">
+      {{recording ? countdown + 's' : '按住录音'}}
+    </text>
+  </view>
+
+  <!-- 波形 + 录音按钮 -->
+  <view class="wave-row">
+    <!-- 左侧波形 -->
+    <view class="bars-wrap bars-wrap--left">
+      <view
+        wx:for="{{bars}}"
+        wx:key="index"
+        class="bar {{recording ? 'bar--active' : ''}}"
+        style="height: {{recording ? item : 20}}rpx"
+      ></view>
+    </view>
+
+    <!-- 中央录音按钮 -->
+    <view
+      class="record-btn {{recording ? 'record-btn--active' : ''}}"
+      bindtouchstart="onPressStart"
+      bindtouchend="onPressEnd"
+    >
+      <view class="record-btn__inner">
+        <view class="record-icon {{recording ? 'record-icon--stop' : ''}}"></view>
+      </view>
+    </view>
+
+    <!-- 右侧波形（镜像） -->
+    <view class="bars-wrap bars-wrap--right">
+      <view
+        wx:for="{{bars}}"
+        wx:key="index"
+        class="bar {{recording ? 'bar--active' : ''}}"
+        style="height: {{recording ? bars[4 - index] : 20}}rpx"
+      ></view>
+    </view>
+  </view>
+
+  <!-- 提示文字 -->
+  <text class="wave-hint">{{recording ? '松开结束录制' : '按住开始录制您的品鉴感受'}}</text>
+</view>

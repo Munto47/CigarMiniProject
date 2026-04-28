@@ -1,0 +1,19 @@
+<view class="radar-card card">
+  <text class="radar-title section-title">风味解析</text>
+
+  <!-- Canvas 雷达图 -->
+  <view class="canvas-wrap">
+    <canvas type="2d" id="radarCanvas" class="radar-canvas" />
+  </view>
+
+  <!-- 进度条明细 -->
+  <view wx:if="{{showBars}}" class="bar-list">
+    <view wx:for="{{barList}}" wx:key="label" class="bar-row">
+      <text class="bar-label">{{item.label}}</text>
+      <view class="bar-track">
+        <view class="bar-fill" style="width: {{item.value}}%"></view>
+      </view>
+      <text class="bar-value">{{item.value}}</text>
+    </view>
+  </view>
+</view>

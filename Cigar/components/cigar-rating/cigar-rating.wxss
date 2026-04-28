@@ -1,0 +1,120 @@
+/* ══ cigar-rating 组件样式 ══ */
+
+.cr-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* ── 尺寸变体 ── */
+.cr-wrap--sm { gap: 6rpx; }
+.cr-wrap--md { gap: 10rpx; }
+.cr-wrap--lg { gap: 16rpx; }
+
+/* ── 单个雪茄项 ── */
+.cr-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cr-item--interactive {
+  transition: transform 120ms ease;
+}
+.cr-item--interactive:active {
+  transform: scale(0.88);
+}
+
+/* ── 雪茄主体 ── */
+.cr-body {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* sm */
+.cr-wrap--sm .cr-body {
+  width: 38rpx;
+  height: 12rpx;
+  border-radius: 6rpx 2rpx 2rpx 6rpx;
+}
+/* md */
+.cr-wrap--md .cr-body {
+  width: 54rpx;
+  height: 18rpx;
+  border-radius: 9rpx 2rpx 2rpx 9rpx;
+}
+/* lg */
+.cr-wrap--lg .cr-body {
+  width: 68rpx;
+  height: 22rpx;
+  border-radius: 11rpx 3rpx 3rpx 11rpx;
+}
+
+/* ── 雪茄尖端 ── */
+.cr-tip {
+  flex-shrink: 0;
+  margin-left: -1rpx;
+}
+.cr-wrap--sm .cr-tip { width: 5rpx;  height: 8rpx;  border-radius: 0 3rpx 3rpx 0; }
+.cr-wrap--md .cr-tip { width: 7rpx;  height: 11rpx; border-radius: 0 4rpx 4rpx 0; }
+.cr-wrap--lg .cr-tip { width: 9rpx;  height: 14rpx; border-radius: 0 5rpx 5rpx 0; }
+
+/* ── 腰带装饰线 ── */
+.cr-band {
+  position: absolute;
+  left: 25%;
+  width: 14%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.28);
+  border-left:  1rpx solid rgba(255, 255, 255, 0.12);
+  border-right: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+/* ════════════ 状态色 ════════════ */
+
+/* 满色（full）—— 金色渐变，有光晕 */
+.cr-body--full {
+  background: linear-gradient(
+    90deg,
+    #7A6430  0%,
+    #C9A84C  35%,
+    #E8C97A  55%,
+    #C9A84C  75%,
+    #7A6430 100%
+  );
+  box-shadow: 0 0 8rpx rgba(201, 168, 76, 0.4);
+}
+.cr-tip--full {
+  background: #C9A84C;
+  box-shadow: 0 0 6rpx rgba(201, 168, 76, 0.45);
+}
+
+/* 半色（half）—— 左半金右半暗 */
+.cr-body--half {
+  background: linear-gradient(
+    to right,
+    #7A6430  0%,
+    #C9A84C  34%,
+    #E8C97A  48%,
+    #1C1C14  50%,
+    #1A1A12 100%
+  );
+  border: 1rpx solid rgba(201, 168, 76, 0.25);
+}
+.cr-tip--half {
+  background: #1A1A12;
+  border: 1rpx solid rgba(201, 168, 76, 0.18);
+}
+
+/* 空心（empty）—— 暗色轮廓 */
+.cr-body--empty {
+  background: #1F1F1F;
+  border: 1rpx solid rgba(201, 168, 76, 0.2);
+}
+.cr-tip--empty {
+  background: #1A1A1A;
+  border: 1rpx solid rgba(201, 168, 76, 0.15);
+  border-left: none;
+}

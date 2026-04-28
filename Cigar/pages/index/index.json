@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "navigation-bar": "/components/navigation-bar/navigation-bar",
+    "question-card":  "/components/question-card/question-card",
+    "skeleton-cigar": "/components/skeleton-cigar/skeleton-cigar"
+  },
+  "navigationStyle": "custom"
+}

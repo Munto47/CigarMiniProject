@@ -1,0 +1,30 @@
+.p-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14rpx 28rpx;
+  border-radius: var(--radius-full);
+  border: 1rpx solid var(--border-subtle);
+  background: var(--bg-elevated);
+  transition: all 200ms ease;
+}
+
+.p-chip:active {
+  transform: scale(0.94);
+}
+
+.p-chip--selected {
+  border-color: var(--border-strong);
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.p-chip__text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+
+.p-chip--selected .p-chip__text {
+  color: var(--color-gold);
+  font-weight: 600;
+}

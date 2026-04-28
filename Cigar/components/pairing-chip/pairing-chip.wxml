@@ -1,0 +1,6 @@
+<view
+  class="p-chip {{selected ? 'p-chip--selected' : ''}}"
+  bindtap="tap"
+>
+  <text class="p-chip__text">{{label}}</text>
+</view>

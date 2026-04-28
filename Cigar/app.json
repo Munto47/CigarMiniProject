@@ -1,0 +1,46 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/flavor/flavor",
+    "pages/cart/cart",
+    "pages/history/history",
+    "pages/club/club",
+    "pages/cigar-detail/cigar-detail",
+    "pages/poster/poster",
+    "pages/checkout/checkout"
+  ],
+  "tabBar": {
+    "custom": true,
+    "color": "#4A4540",
+    "selectedColor": "#C9A84C",
+    "backgroundColor": "#161616",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/index/index",    "text": "AI 推荐" },
+      { "pagePath": "pages/flavor/flavor",  "text": "风味生成" },
+      { "pagePath": "pages/cart/cart",      "text": "购物车" },
+      { "pagePath": "pages/history/history","text": "历史记录" },
+      { "pagePath": "pages/club/club",      "text": "会员中心" }
+    ]
+  },
+  "window": {
+    "navigationBarTextStyle": "white",
+    "navigationStyle": "custom",
+    "backgroundColor": "#0D0D0D"
+  },
+  "style": "v2",
+  "renderer": "skyline",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "defaultContentBox": true,
+      "tagNameStyleIsolation": "legacy",
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "15.255.255"
+    }
+  },
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -1,0 +1,103 @@
+<navigation-bar
+  title="俱乐部"
+  back="{{false}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<scroll-view class="club-page" scroll-y>
+
+  <!-- ── 会员卡 Hero ── -->
+  <view class="member-card">
+    <!-- 背景装饰 -->
+    <view class="member-card__bg">
+      <view class="mc-deco mc-deco--1"></view>
+      <view class="mc-deco mc-deco--2"></view>
+      <view class="mc-deco mc-deco--3"></view>
+    </view>
+
+    <!-- 头像 + 姓名 -->
+    <view class="mc-user">
+      <view class="mc-avatar">
+        <text class="mc-avatar__init">{{member.name.slice(0,1)}}</text>
+      </view>
+      <view class="mc-user__info">
+        <text class="mc-name">{{member.name}}</text>
+        <view class="level-badge">
+          <text class="level-text">{{member.level}} MEMBER</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 余额 -->
+    <view class="mc-balance">
+      <text class="mc-balance__label">储值余额</text>
+      <text class="mc-balance__amount">¥ {{member.balance}}</text>
+    </view>
+
+    <!-- 积分 -->
+    <view class="mc-points">
+      <text class="mc-points__label">积分</text>
+      <text class="mc-points__val">{{member.points}}</text>
+    </view>
+
+    <!-- 操作 -->
+    <view class="mc-actions">
+      <view class="mc-btn gold-btn" bindtap="topup">
+        <text>充值</text>
+      </view>
+      <view class="mc-btn ghost-btn">
+        <text>明细</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ── 功能网格 ── -->
+  <view class="function-grid">
+    <view
+      wx:for="{{gridItems}}"
+      wx:key="label"
+      class="grid-item"
+      bindtap="onGridTap"
+      data-index="{{index}}"
+    >
+      <view class="grid-item__icon-wrap">
+        <text class="grid-item__icon">{{item.icon}}</text>
+      </view>
+      <text class="grid-item__label">{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- ── 活动 Banner ── -->
+  <view class="banner-section">
+    <text class="banner-section__title section-title">俱乐部活动</text>
+    <swiper
+      class="banner-swiper"
+      autoplay
+      interval="3500"
+      circular
+      current="{{bannerCurrent}}"
+      bindchange="onBannerChange"
+    >
+      <swiper-item wx:for="{{banners}}" wx:key="id">
+        <view class="banner-item" style="background: {{item.bg}}">
+          <view class="banner-content">
+            <text class="banner-title">{{item.title}}</text>
+            <text class="banner-desc">{{item.desc}}</text>
+          </view>
+          <view class="banner-deco"></view>
+        </view>
+      </swiper-item>
+    </swiper>
+    <!-- 指示点 -->
+    <view class="banner-dots">
+      <view
+        wx:for="{{banners}}"
+        wx:key="id"
+        class="dot {{bannerCurrent === index ? 'dot--active' : ''}}"
+      ></view>
+    </view>
+  </view>
+
+  <view class="tab-safe-bottom"></view>
+</scroll-view>

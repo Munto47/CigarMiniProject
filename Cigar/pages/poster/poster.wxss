@@ -1,0 +1,173 @@
+.poster-page {
+  height: calc(100vh - 88px);
+  background: var(--bg-base);
+}
+
+/* ══ 录音阶段 ══ */
+.record-stage {
+  padding: var(--space-lg);
+  animation: fadeIn 400ms ease both;
+}
+
+.record-stage__header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.record-eyebrow {
+  display: block;
+  font-size: 20rpx;
+  letter-spacing: 0.2em;
+  color: var(--text-disabled);
+  margin-bottom: 12rpx;
+}
+
+.record-title {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16rpx;
+}
+
+.record-desc {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 波形容器 */
+.wave-wrap {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1rpx solid var(--border-subtle);
+  margin-bottom: var(--space-xl);
+  overflow: hidden;
+}
+
+/* 引导提示 */
+.tips-section {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  padding: var(--space-md);
+}
+
+.tips-title {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-disabled);
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-md);
+}
+
+.tip-item {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.tip-item:last-child {
+  margin-bottom: 0;
+}
+
+.tip-icon {
+  font-size: 16rpx;
+  color: var(--color-gold-dim);
+  margin-top: 8rpx;
+  flex-shrink: 0;
+}
+
+.tip-text {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ══ 预览阶段 ══ */
+.preview-stage {
+  padding: var(--space-md) var(--space-md);
+  animation: fadeIn 400ms ease both;
+}
+
+.preview-header {
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.preview-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+}
+
+.preview-desc {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+/* 海报画布容器 */
+.poster-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+.poster-canvas {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-gold);
+  border: 1rpx solid var(--border-subtle);
+}
+
+/* 转录预览 */
+.transcript-wrap {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.transcript-label {
+  display: block;
+  font-size: 20rpx;
+  color: var(--text-disabled);
+  letter-spacing: 0.1em;
+  margin-bottom: 12rpx;
+}
+
+.transcript-text {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* 操作区 */
+.preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.save-btn {
+  font-size: 32rpx;
+  padding: 32rpx;
+}
+
+.save-btn--loading {
+  opacity: 0.6;
+}
+
+.bottom-padding {
+  height: 80rpx;
+}

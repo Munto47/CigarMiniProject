@@ -1,0 +1,183 @@
+/* ── 全局主题 Token ── */
+page {
+  --color-gold:        #C9A84C;
+  --color-gold-light:  #E8C97A;
+  --color-gold-dim:    #7A6430;
+
+  --bg-base:           #0D0D0D;
+  --bg-surface:        #161616;
+  --bg-elevated:       #1F1F1F;
+  --bg-overlay:        rgba(0, 0, 0, 0.72);
+
+  --text-primary:      #F5F0E8;
+  --text-secondary:    #9E9484;
+  --text-disabled:     #4A4540;
+
+  --border-subtle:     rgba(201, 168, 76, 0.15);
+  --border-strong:     rgba(201, 168, 76, 0.45);
+
+  --color-success:     #4CAF7A;
+  --color-warning:     #E8A04C;
+  --color-danger:      #C94C4C;
+
+  --space-xs: 8rpx;
+  --space-sm: 16rpx;
+  --space-md: 24rpx;
+  --space-lg: 40rpx;
+  --space-xl: 64rpx;
+
+  --radius-sm:   12rpx;
+  --radius-md:   24rpx;
+  --radius-lg:   40rpx;
+  --radius-full: 9999rpx;
+
+  --shadow-gold: 0 4rpx 24rpx rgba(201, 168, 76, 0.18);
+  --shadow-card: 0 8rpx 40rpx rgba(0, 0, 0, 0.6);
+
+  /* tab-bar 固定高度 = 内容区 112rpx + 设备底部安全区 */
+  --tab-bar-height: calc(112rpx + env(safe-area-inset-bottom));
+
+  /* ── 奢侈品字体方案 ──
+     · 衬线体（英文标题/数字）：Georgia → Times → 系统 serif
+     · 无衬线体（正文/UI）：PingFang SC → Helvetica → 系统 sans-serif
+     · 中文衬线（展示文字）：STSong / Songti SC（宋体）
+  */
+  --font-serif:  'Georgia', 'Times New Roman', 'STSong', 'Songti SC', 'SimSun', serif;
+  --font-body:   -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+}
+
+/* ── 卡片基础类 ── */
+.card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* ── 金色主按钮 ── */
+.gold-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-gold-light) 0%, var(--color-gold) 60%, var(--color-gold-dim) 100%);
+  color: #0D0D0D;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  padding: 28rpx 48rpx;
+  letter-spacing: 0.05em;
+}
+
+.gold-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+/* ── 幽灵按钮 ── */
+.ghost-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-gold);
+  font-size: 30rpx;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1rpx solid var(--border-strong);
+  padding: 26rpx 48rpx;
+  letter-spacing: 0.05em;
+}
+
+.ghost-btn:active {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+/* ── 区块标题（使用衬线体增强奢侈品感） ── */
+.section-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-gold);
+  letter-spacing: 0.1em;
+  font-family: var(--font-serif);
+}
+
+/* ── 页面布局容器 ── */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-base);
+}
+
+/* ── 全局滚动区 ── */
+.scroll-page {
+  flex: 1;
+  height: 0;
+}
+
+/* ── 分隔线 ── */
+.divider {
+  height: 1rpx;
+  background: var(--border-subtle);
+  margin: 0 var(--space-lg);
+}
+
+/* ── 标签 Chip ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(201, 168, 76, 0.1);
+  border: 1rpx solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 8rpx 20rpx;
+  font-size: 22rpx;
+  color: var(--color-gold);
+}
+
+/* ── 评分徽章 ── */
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(201, 168, 76, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 6rpx 14rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+/* ── 全局过渡动效 ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(60rpx); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-40rpx); opacity: 0; }
+  to   { transform: translateY(0);      opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400rpx 0; }
+  100% { background-position: 400rpx 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.5); }
+  50%       { box-shadow: 0 0 0 24rpx rgba(201, 168, 76, 0); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.04); }
+}

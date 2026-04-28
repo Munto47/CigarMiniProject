@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "navigation-bar":  "/components/navigation-bar/navigation-bar",
+    "flavor-radar":    "/components/flavor-radar/flavor-radar",
+    "pairing-chip":    "/components/pairing-chip/pairing-chip",
+    "cigar-rating":    "/components/cigar-rating/cigar-rating",
+    "custom-tab-bar":  "/custom-tab-bar/index"
+  },
+  "navigationStyle": "custom"
+}

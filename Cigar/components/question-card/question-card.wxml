@@ -1,0 +1,31 @@
+<view class="q-card">
+  <!-- 题目类型标签 -->
+  <view class="q-type-badge">
+    <text class="q-type-text">{{question.type === 'multi' ? '多选' : '单选'}}</text>
+  </view>
+
+  <!-- 问题文本 -->
+  <text class="q-text">{{question.question}}</text>
+
+  <!-- 选项列表 -->
+  <view class="q-options">
+    <view
+      wx:for="{{question.options}}"
+      wx:key="index"
+      class="q-option {{answers.indexOf(index) !== -1 ? 'q-option--selected' : ''}} {{flashIdx === index ? 'q-option--flash' : ''}}"
+      bindtap="selectOption"
+      data-index="{{index}}"
+    >
+      <!-- 选中标记 -->
+      <view class="q-option__check {{answers.indexOf(index) !== -1 ? 'q-option__check--active' : ''}}">
+        <view wx:if="{{answers.indexOf(index) !== -1}}" class="q-option__check-inner"></view>
+      </view>
+      <text class="q-option__text">{{item}}</text>
+    </view>
+  </view>
+
+  <!-- 下一题按钮 -->
+  <view class="q-next gold-btn {{answers.length === 0 ? 'q-next--disabled' : ''}}" bindtap="next">
+    <text>下一题</text>
+  </view>
+</view>

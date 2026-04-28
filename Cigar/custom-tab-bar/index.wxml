@@ -1,0 +1,27 @@
+<view class="tab-bar">
+  <view class="tab-bar__border"></view>
+  <view class="tab-bar__inner">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab-item {{selected === index ? 'tab-item--active' : ''}}"
+      bindtap="switchTab"
+      data-index="{{index}}"
+      data-path="{{item.path}}"
+    >
+      <!-- 图标容器 -->
+      <view class="tab-icon tab-icon--{{item.key}} {{selected === index ? 'tab-icon--selected' : ''}}">
+        <!-- 购物车徽标 -->
+        <view wx:if="{{item.key === 'cart' && cartCount > 0}}" class="cart-badge">
+          <text class="cart-badge__text">{{cartCount > 99 ? '99+' : cartCount}}</text>
+        </view>
+      </view>
+      <!-- 文字标签 -->
+      <text class="tab-label">{{item.text}}</text>
+      <!-- 选中指示点 -->
+      <view wx:if="{{selected === index}}" class="tab-dot"></view>
+    </view>
+  </view>
+  <!-- iOS 安全区 -->
+  <view class="tab-bar__safe-area"></view>
+</view>

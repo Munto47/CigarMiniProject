@@ -1,0 +1,113 @@
+.wave-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.countdown-row {
+  margin-bottom: var(--space-lg);
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+}
+
+.countdown-text {
+  font-size: 32rpx;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  transition: color 300ms ease;
+}
+
+.countdown-text--active {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+/* 波形行 */
+.wave-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.bars-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+  width: 100rpx;
+}
+
+.bars-wrap--right {
+  flex-direction: row-reverse;
+}
+
+.bar {
+  width: 6rpx;
+  border-radius: 3rpx;
+  background: rgba(201, 168, 76, 0.25);
+  min-height: 20rpx;
+  max-height: 80rpx;
+  transition: height 200ms ease;
+}
+
+.bar--active {
+  background: var(--color-gold);
+  animation: none;
+}
+
+/* 录音按钮 */
+.record-btn {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 70rpx;
+  border: 2rpx solid var(--border-strong);
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease;
+  flex-shrink: 0;
+}
+
+.record-btn--active {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.record-btn__inner {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 麦克风图标（圆点表示） */
+.record-icon {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 8rpx;
+  background: #0D0D0D;
+  transition: all 200ms ease;
+}
+
+.record-icon--stop {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 4rpx;
+}
+
+.wave-hint {
+  font-size: 24rpx;
+  color: var(--text-disabled);
+  text-align: center;
+  letter-spacing: 0.03em;
+}

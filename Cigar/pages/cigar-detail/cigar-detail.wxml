@@ -1,0 +1,242 @@
+<navigation-bar
+  title=""
+  back="{{true}}"
+  color="#F5F0E8"
+  background="transparent"
+/>
+
+<scroll-view
+  wx:if="{{cigar}}"
+  class="detail-page"
+  scroll-y
+  bindscroll="onPageScroll"
+>
+
+  <!-- ── Hero 图片区 ── -->
+  <view class="hero-section">
+    <view class="hero-img" style="opacity: {{heroOpacity}}">
+      <view class="hero-cigar-art">
+        <view class="hero-cigar-body">
+          <view class="hero-cigar-band"></view>
+        </view>
+        <view class="hero-cigar-tip"></view>
+      </view>
+      <view class="hero-smoke">
+        <view class="smoke smoke-1"></view>
+        <view class="smoke smoke-2"></view>
+        <view class="smoke smoke-3"></view>
+      </view>
+    </view>
+    <!-- 底部渐变蒙层 -->
+    <view class="hero-gradient"></view>
+  </view>
+
+  <!-- ── 基础信息 ── -->
+  <view class="info-section">
+    <view class="info-header">
+      <view>
+        <text class="cigar-name">{{cigar.name}}</text>
+        <view class="cigar-meta-row">
+          <text class="meta-text">{{cigar.origin}}</text>
+          <text class="meta-sep">·</text>
+          <text class="meta-text">{{cigar.year}}</text>
+          <text class="meta-sep">·</text>
+          <text class="meta-text">{{cigar.strength}}</text>
+        </view>
+      </view>
+      <view class="rating-badge rating-lg">
+        <text>{{cigar.rating}}</text>
+      </view>
+    </view>
+
+    <!-- 标签 -->
+    <view class="tag-row">
+      <view wx:for="{{cigar.tags}}" wx:key="*this" wx:for-item="tag" class="chip">
+        <text>{{tag}}</text>
+      </view>
+    </view>
+
+    <!-- 价格 + 购买按钮 -->
+    <view class="buy-row">
+      <text class="price-big">¥ {{cigar.price}}</text>
+      <view class="gold-btn buy-btn" bindtap="addToCart">
+        <text>加入购物车</text>
+      </view>
+    </view>
+
+    <!-- 抽吸时长 -->
+    <view class="duration-row">
+      <view class="duration-icon"></view>
+      <text class="duration-text">抽吸时长 {{cigar.duration}}</text>
+    </view>
+  </view>
+
+  <view class="divider"></view>
+
+  <!-- ── 风味图谱 ── -->
+  <view class="section-wrap">
+    <flavor-radar scores="{{cigar.scores}}" show-bars="{{true}}" />
+  </view>
+
+  <view class="divider"></view>
+
+  <!-- ── 分段描述 ── -->
+  <view class="section-wrap">
+    <text class="section-title">品鉴笔记</text>
+    <view wx:for="{{cigar.segments}}" wx:key="name" class="segment-item">
+      <view class="segment-dot"></view>
+      <view class="segment-content">
+        <text class="segment-name">{{item.name}}</text>
+        <text class="segment-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="divider"></view>
+
+  <!-- ── 配饮推荐 ── -->
+  <view class="section-wrap">
+    <text class="section-title">配饮推荐</text>
+    <scroll-view class="pairing-scroll" scroll-x>
+      <view class="pairing-list">
+        <view wx:for="{{cigar.pairings}}" wx:key="name" class="pairing-card">
+          <!-- 配饮图标占位 -->
+          <view class="pairing-icon-wrap">
+            <view class="pairing-icon-dot"></view>
+          </view>
+          <text class="pairing-type">{{item.type}}</text>
+          <text class="pairing-name">{{item.name}}</text>
+          <text class="pairing-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="divider"></view>
+
+  <!-- ── 相关推荐 ── -->
+  <view class="section-wrap">
+    <text class="section-title">相关推荐</text>
+    <scroll-view class="related-scroll" scroll-x>
+      <view class="related-list">
+        <view
+          wx:for="{{cigar.related}}"
+          wx:key="id"
+          class="related-card"
+          bindtap="viewRelated"
+          data-id="{{item.id}}"
+        >
+          <view class="related-img">
+            <view class="r-mini-body"></view>
+            <view class="r-mini-tip"></view>
+          </view>
+          <text class="related-name">{{item.name}}</text>
+          <view class="related-bottom">
+            <text class="related-price">¥ {{item.price}}</text>
+            <view class="rating-badge"><text>{{item.rating}}</text></view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="divider"></view>
+
+  <!-- ══ 品鉴评价 ══ -->
+  <view class="section-wrap">
+
+    <!-- 评价 Header -->
+    <view class="review-header">
+      <view class="review-header__left">
+        <text class="section-title">品鉴评价</text>
+        <text class="review-total">共 {{reviewMeta.totalCount}} 位爱好者评价</text>
+      </view>
+      <view class="review-header__avg">
+        <text class="review-avg-score">{{reviewMeta.avgScore}}</text>
+        <cigar-rating value="{{reviewMeta.avgScore}}" readonly="{{true}}" size="sm" />
+      </view>
+    </view>
+
+    <!-- 评论列表 -->
+    <view wx:for="{{reviews}}" wx:key="id" class="review-item">
+      <view class="review-item__header">
+        <!-- 头像 -->
+        <view class="review-avatar">
+          <text class="review-avatar__text">{{item.avatar}}</text>
+        </view>
+        <!-- 昵称 + 评分 -->
+        <view class="review-item__meta">
+          <text class="review-item__name">{{item.name}}</text>
+          <cigar-rating value="{{item.rating}}" readonly="{{true}}" size="sm" />
+        </view>
+        <!-- 时间 -->
+        <text class="review-item__time">{{item.time}}</text>
+      </view>
+      <text class="review-item__content">{{item.content}}</text>
+    </view>
+
+    <!-- 发表按钮 -->
+    <view class="gold-btn write-review-btn" bindtap="openReviewModal">
+      <text>发表我的品鉴</text>
+    </view>
+
+  </view>
+
+  <view class="page-bottom-safe"></view>
+</scroll-view>
+
+<!-- ══ 评价输入 Modal ══ -->
+<view wx:if="{{showReviewModal}}" class="review-modal-mask" bindtap="closeReviewModal">
+  <view class="review-modal" catchtap>
+    <!-- 拖拽指示条 -->
+    <view class="review-modal__handle"></view>
+    <text class="review-modal__title">发表品鉴</text>
+
+    <!-- 打分 -->
+    <view class="review-modal__rating-row">
+      <text class="review-modal__rating-label">综合评分</text>
+      <cigar-rating
+        value="{{myRating}}"
+        readonly="{{false}}"
+        size="lg"
+        bindchange="onMyRatingChange"
+      />
+    </view>
+
+    <!-- 文本输入 -->
+    <textarea
+      class="review-modal__input"
+      placeholder="写下您的品鉴感受，让更多爱好者受益……"
+      placeholder-style="color: #4A4540; font-size: 28rpx;"
+      value="{{reviewText}}"
+      bindinput="onReviewInput"
+      maxlength="300"
+      auto-height
+    />
+    <text class="review-modal__count">{{reviewText.length}} / 300</text>
+
+    <!-- 操作按钮 -->
+    <view class="gold-btn review-modal__submit" bindtap="submitReview">
+      <text>提交评价</text>
+    </view>
+    <view class="ghost-btn review-modal__cancel" bindtap="closeReviewModal">
+      <text>暂不评价</text>
+    </view>
+  </view>
+</view>
+
+<!-- ── 火星 Embers：fixed 全屏浮层，不受 scroll-view 裁剪 ── -->
+<view wx:if="{{showEmbers}}" class="ambient-effects">
+  <view class="ember e1"></view>
+  <view class="ember e2"></view>
+  <view class="ember e3"></view>
+  <view class="ember e4"></view>
+  <view class="ember e5"></view>
+  <view class="ember e6"></view>
+  <view class="ember e7"></view>
+  <view class="ember e8"></view>
+  <view class="ember e9"></view>
+  <view class="ember e10"></view>
+</view>
+
+<custom-tab-bar />

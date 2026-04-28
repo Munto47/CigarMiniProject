@@ -1,0 +1,18 @@
+<!-- cigar-rating: 雪茄形状评分组件，支持只读（含半颗）和交互（整数）两种模式 -->
+<view class="cr-wrap cr-wrap--{{size}}">
+  <view
+    wx:for="{{segments}}"
+    wx:key="idx"
+    class="cr-item {{readonly ? '' : 'cr-item--interactive'}}"
+    bindtap="onTap"
+    data-idx="{{item.idx}}"
+  >
+    <!-- 雪茄主体 -->
+    <view class="cr-body cr-body--{{item.type}}">
+      <!-- 腰带装饰 -->
+      <view class="cr-band"></view>
+    </view>
+    <!-- 雪茄尖端 -->
+    <view class="cr-tip cr-tip--{{item.type}}"></view>
+  </view>
+</view>

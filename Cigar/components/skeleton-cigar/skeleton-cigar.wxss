@@ -1,0 +1,55 @@
+.skeleton-wrap {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  box-sizing: border-box;
+}
+
+.skeleton-cigar-shape {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.skeleton-body {
+  width: 420rpx;
+  height: 64rpx;
+  border-radius: 32rpx 8rpx 8rpx 32rpx;
+}
+
+.skeleton-tip {
+  width: 28rpx;
+  height: 32rpx;
+  border-radius: 0 50% 50% 0;
+  margin-left: -2rpx;
+}
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.skeleton-line {
+  height: 20rpx;
+  border-radius: 10rpx;
+}
+
+.skeleton-line--lg { width: 70%; }
+.skeleton-line--md { width: 50%; }
+.skeleton-line--sm { width: 35%; }
+
+/* 扫光动效 */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    rgba(201, 168, 76, 0.06) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 400rpx 100%;
+  animation: shimmer 1.4s linear infinite;
+}

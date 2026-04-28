@@ -1,0 +1,167 @@
+<!-- AI 智能推荐主页 -->
+<navigation-bar
+  title="AI 智能推荐"
+  back="{{false}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<view class="ai-page">
+
+  <!-- ══ 阶段一：欢迎引导 ══ -->
+  <view wx:if="{{stage === 'welcome'}}" class="welcome-screen">
+    <!-- 品牌标志 -->
+    <view class="brand-logo">
+      <view class="cigar-silhouette">
+        <view class="cigar-body">
+          <view class="cigar-band"></view>
+        </view>
+        <view class="cigar-tip"></view>
+        <view class="smoke-wrap">
+          <view class="smoke smoke-1"></view>
+          <view class="smoke smoke-2"></view>
+          <view class="smoke smoke-3"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 标题区 -->
+    <view class="welcome-title-wrap">
+      <text class="welcome-eyebrow">CIGAR CLUB</text>
+      <text class="welcome-title">发现属于你的</text>
+      <text class="welcome-title welcome-title--gold">专属雪茄</text>
+    </view>
+    <text class="welcome-desc">
+      通过 AI 智能分析您的偏好与场景，精准匹配最适合您的雪茄品类
+    </text>
+
+    <view class="welcome-actions">
+      <view class="gold-btn start-btn" bindtap="startQA">
+        <text>开始探索</text>
+      </view>
+    </view>
+
+    <view class="welcome-divider">
+      <view class="divider-line"></view>
+      <text class="divider-text">约需 2 分钟</text>
+      <view class="divider-line"></view>
+    </view>
+  </view>
+
+  <!-- ══ 阶段二：问答流 ══ -->
+  <view wx:if="{{stage === 'qa'}}" class="qa-screen">
+    <!-- 进度条 -->
+    <view class="progress-bar">
+      <view class="progress-track">
+        <view
+          class="progress-fill"
+          style="width: {{((currentQ + 1) / questions.length) * 100}}%"
+        ></view>
+      </view>
+      <text class="progress-text">{{currentQ + 1}} / {{questions.length}}</text>
+    </view>
+
+    <!-- 问答卡片 -->
+    <view class="card-wrap {{cardAnimClass}}">
+      <question-card
+        question="{{questions[currentQ]}}"
+        answers="{{answers[questions[currentQ].id] || []}}"
+        bindanswer="onAnswer"
+        bindnext="nextQuestion"
+      />
+    </view>
+  </view>
+
+  <!-- ══ 阶段三：加载骨架屏 ══ -->
+  <view wx:if="{{stage === 'loading'}}" class="loading-screen">
+    <view class="loading-label">
+      <text class="loading-text">AI 正在匹配</text>
+      <text class="loading-dots">...</text>
+    </view>
+    <skeleton-cigar />
+    <skeleton-cigar />
+    <skeleton-cigar />
+  </view>
+
+  <!-- ══ 阶段四：推荐结果 ══ -->
+  <view wx:if="{{stage === 'result'}}" class="result-screen">
+    <view class="result-header">
+      <text class="result-title">为您推荐</text>
+      <text class="result-subtitle">基于您的偏好，精选以下品类</text>
+    </view>
+
+    <view wx:for="{{results}}" wx:key="id" class="cigar-card {{index === 0 ? 'cigar-card--featured' : ''}}">
+      <!-- 匹配度徽章 -->
+      <view class="match-badge">
+        <text class="match-text">{{item.match}}% 匹配</text>
+      </view>
+
+      <!-- 雪茄图片占位 -->
+      <view class="cigar-img-wrap">
+        <view class="cigar-img-placeholder">
+          <view class="placeholder-cigar">
+            <view class="placeholder-body"></view>
+            <view class="placeholder-tip"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 基础信息 -->
+      <view class="cigar-card__info">
+        <view class="cigar-card__header">
+          <text class="cigar-name">{{item.name}}</text>
+          <view class="rating-badge">
+            <text>{{item.rating}}</text>
+          </view>
+        </view>
+
+        <view class="cigar-meta">
+          <text class="meta-item">{{item.origin}}</text>
+          <text class="meta-sep">·</text>
+          <text class="meta-item">{{item.strength}}</text>
+          <text class="meta-sep">·</text>
+          <text class="meta-item">{{item.duration}}</text>
+        </view>
+
+        <!-- 风味标签 -->
+        <view class="tag-row">
+          <view wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag" class="chip">
+            <text>{{tag}}</text>
+          </view>
+        </view>
+
+        <!-- 价格与操作 -->
+        <view class="cigar-card__actions">
+          <text class="cigar-price">¥ {{item.price}}</text>
+          <view class="action-btns">
+            <view
+              class="ghost-btn detail-btn"
+              bindtap="viewDetail"
+              data-id="{{item.id}}"
+            >
+              <text>详情</text>
+            </view>
+            <view
+              class="gold-btn cart-btn"
+              bindtap="addToCart"
+              data-id="{{item.id}}"
+            >
+              <text>加入购物车</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 重新测试 -->
+    <view class="restart-wrap">
+      <view class="ghost-btn" bindtap="restart">
+        <text>重新测试</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<!-- 底部安全间距 -->
+<view class="tab-safe-bottom"></view>

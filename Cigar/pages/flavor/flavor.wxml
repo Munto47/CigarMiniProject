@@ -1,0 +1,83 @@
+<navigation-bar
+  title="风味生成"
+  back="{{false}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<scroll-view class="flavor-page" scroll-y>
+
+  <!-- 大标题 -->
+  <view class="flavor-hero">
+    <text class="flavor-eyebrow">FLAVOR PROFILE</text>
+    <text class="flavor-title">描述你的感受</text>
+    <text class="flavor-subtitle">选择风味关键词，AI 为您生成专属图谱</text>
+  </view>
+
+  <!-- 两张入口卡片 -->
+  <view class="entry-cards">
+    <!-- 语音描述入口 -->
+    <view class="entry-card entry-card--voice" bindtap="generatePoster">
+      <view class="entry-card__icon-wrap">
+        <view class="mic-icon"></view>
+      </view>
+      <view class="entry-card__info">
+        <text class="entry-card__title">语音描述</text>
+        <text class="entry-card__desc">说出您的感受，生成风味海报</text>
+      </view>
+      <text class="entry-card__arrow">›</text>
+    </view>
+
+    <!-- 关键词选择（当前激活） -->
+    <view class="entry-card entry-card--keyword entry-card--active">
+      <view class="entry-card__icon-wrap">
+        <view class="tag-icon"></view>
+      </view>
+      <view class="entry-card__info">
+        <text class="entry-card__title">关键词选择</text>
+        <text class="entry-card__desc">多选风味标签，精准生成图谱</text>
+      </view>
+      <text class="entry-card__arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 关键词标签云 -->
+  <view class="tag-section">
+    <text class="tag-section__title">风味关键词</text>
+    <view class="tag-cloud">
+      <pairing-chip
+        wx:for="{{tags}}"
+        wx:key="label"
+        label="{{item.label}}"
+        selected="{{item.selected}}"
+        bindtoggle="onToggleTag"
+      />
+    </view>
+  </view>
+
+  <!-- 风味图谱结果 -->
+  <view wx:if="{{hasResult}}" class="result-section">
+    <flavor-radar scores="{{scores}}" show-bars="{{true}}" />
+  </view>
+
+  <!-- 空态提示 -->
+  <view wx:else class="empty-radar">
+    <view class="empty-radar__hex"></view>
+    <text class="empty-radar__text">选择风味关键词后展示图谱</text>
+  </view>
+
+  <!-- 操作区 -->
+  <view class="flavor-actions">
+    <view class="gold-btn" bindtap="generatePoster">
+      <text>生成风味海报</text>
+    </view>
+    <view class="ghost-btn" bindtap="addToHistory">
+      <text>加入品鉴记录</text>
+    </view>
+    <view wx:if="{{hasResult}}" class="reset-btn" bindtap="resetAll">
+      <text class="reset-text">重置选择</text>
+    </view>
+  </view>
+
+  <view class="tab-safe-bottom"></view>
+</scroll-view>

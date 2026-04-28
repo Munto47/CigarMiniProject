@@ -1,0 +1,13 @@
+<view class="skeleton-wrap">
+  <!-- 雪茄轮廓骨架 -->
+  <view class="skeleton-cigar-shape">
+    <view class="skeleton-body shimmer"></view>
+    <view class="skeleton-tip shimmer"></view>
+  </view>
+  <!-- 文字骨架线 -->
+  <view class="skeleton-lines">
+    <view class="skeleton-line skeleton-line--lg shimmer"></view>
+    <view class="skeleton-line skeleton-line--md shimmer"></view>
+    <view class="skeleton-line skeleton-line--sm shimmer"></view>
+  </view>
+</view>
