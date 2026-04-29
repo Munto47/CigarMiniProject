@@ -9,39 +9,64 @@
 
   <!-- ── 会员卡 Hero ── -->
   <view class="member-card">
-    <!-- 背景装饰 -->
     <view class="member-card__bg">
       <view class="mc-deco mc-deco--1"></view>
       <view class="mc-deco mc-deco--2"></view>
       <view class="mc-deco mc-deco--3"></view>
+      <image class="mc-logo-bg" src="/images/pure_img.png" mode="aspectFit" />
     </view>
 
-    <!-- 头像 + 姓名 -->
     <view class="mc-user">
       <view class="mc-avatar">
         <text class="mc-avatar__init">{{member.name.slice(0,1)}}</text>
       </view>
       <view class="mc-user__info">
         <text class="mc-name">{{member.name}}</text>
-        <view class="level-badge">
-          <text class="level-text">{{member.level}} MEMBER</text>
-        </view>
+        <text class="mc-discount">会员折扣 {{member.discount}}</text>
       </view>
     </view>
 
-    <!-- 余额 -->
     <view class="mc-balance">
       <text class="mc-balance__label">储值余额</text>
       <text class="mc-balance__amount">¥ {{member.balance}}</text>
     </view>
 
-    <!-- 积分 -->
-    <view class="mc-points">
-      <text class="mc-points__label">积分</text>
-      <text class="mc-points__val">{{member.points}}</text>
+    <!-- ════════════ 双等级对称面板 ════════════ -->
+    <view class="mc-level-panels">
+
+      <!-- 充值等级 -->
+      <view class="mc-panel mc-panel--recharge">
+        <!-- 行1：徽章（图标+数字） -->
+        <member-level-badge type="recharge" level="{{member.recharge.level}}" size="lg" />
+        <!-- 行2：类型标签 -->
+        <text class="mc-panel__label">充值等级</text>
+        <!-- 行3：进度条 -->
+        <view class="mc-panel__bar">
+          <view class="mc-panel__bar-fill" style="width: {{member.recharge.progress}}%">
+            <view class="mc-panel__bar-shine"></view>
+          </view>
+        </view>
+        <!-- 行4：升级提示 -->
+        <text class="mc-panel__hint">距 V{{member.recharge.nextLevel}} 还差 {{member.recharge.remain}} 积分</text>
+        <!-- 行5：积分值 -->
+        <text class="mc-panel__score">{{member.recharge.points}}<text class="mc-panel__score-unit"> 充值积分</text></text>
+      </view>
+
+      <!-- 消费等级 -->
+      <view class="mc-panel mc-panel--consume">
+        <member-level-badge type="consume" level="{{member.consume.level}}" size="lg" />
+        <text class="mc-panel__label">消费等级</text>
+        <view class="mc-panel__bar">
+          <view class="mc-panel__bar-fill" style="width: {{member.consume.progress}}%">
+            <view class="mc-panel__bar-shine"></view>
+          </view>
+        </view>
+        <text class="mc-panel__hint">距 V{{member.consume.nextLevel}} 还差 {{member.consume.remain}} 积分</text>
+        <text class="mc-panel__score">{{member.consume.points}}<text class="mc-panel__score-unit"> 消费积分</text></text>
+      </view>
+
     </view>
 
-    <!-- 操作 -->
     <view class="mc-actions">
       <view class="mc-btn gold-btn" bindtap="topup">
         <text>充值</text>
@@ -89,7 +114,6 @@
         </view>
       </swiper-item>
     </swiper>
-    <!-- 指示点 -->
     <view class="banner-dots">
       <view
         wx:for="{{banners}}"

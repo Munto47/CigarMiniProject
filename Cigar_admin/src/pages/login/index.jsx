@@ -3,6 +3,7 @@ import { Form, Input, Button, message, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import useStore from '../../store/useStore'
+import logoIcon from '../../assets/pure_img.png'
 
 const MOCK_ACCOUNTS = [
   { username: 'admin', password: 'admin123', name: '超级管理员', role: 'super' },
@@ -48,47 +49,54 @@ export default function LoginPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden',
     }}>
-      {/* 背景装饰 */}
+      {/* 背景装饰 — 使用logo琥珀色系 */}
       <div style={{
-        position: 'absolute', width: 400, height: 400, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)',
-        top: '20%', left: '30%', transform: 'translate(-50%,-50%)',
+        position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(230,154,78,0.05) 0%, rgba(180,122,68,0.02) 40%, transparent 70%)',
+        top: '15%', left: '30%', transform: 'translate(-50%,-50%)',
         pointerEvents: 'none',
       }} />
       <div style={{
-        position: 'absolute', width: 300, height: 300, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%)',
-        bottom: '20%', right: '25%',
+        position: 'absolute', width: 350, height: 350, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(229,172,93,0.04) 0%, transparent 70%)',
+        bottom: '18%', right: '22%',
         pointerEvents: 'none',
       }} />
 
       <div style={{
-        width: 400, background: '#161616',
-        border: '1px solid rgba(201,168,76,0.2)',
-        borderRadius: 16, padding: '48px 40px',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+        width: 420, background: '#0F0F0F',
+        border: '1px solid rgba(180,122,68,0.15)',
+        borderRadius: 20, padding: '52px 44px',
+        boxShadow: '0 32px 96px rgba(0,0,0,0.85), 0 0 0 1px rgba(230,154,78,0.06) inset',
         position: 'relative',
       }}>
-        {/* 顶部金线 */}
+        {/* 顶部装饰线 — 使用logo主色 */}
         <div style={{
-          position: 'absolute', top: 0, left: '20%', right: '20%', height: 2,
-          background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)',
+          position: 'absolute', top: 0, left: '25%', right: '25%', height: 2,
+          background: 'linear-gradient(90deg, transparent, #e69a4e, #b47a44, #e69a4e, transparent)',
           borderRadius: '0 0 2px 2px',
         }} />
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        {/* Logo — 放大，与logo自身#010504底色融合 */}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 14, margin: '0 auto 16px',
-            background: 'linear-gradient(135deg, #E8C97A, #C9A84C, #7A6430)',
+            width: 100, height: 100, borderRadius: 20, margin: '0 auto 18px',
+            background: '#010504',
+            border: '1.5px solid rgba(230,154,78,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26, fontWeight: 700, color: '#1A1208',
-            boxShadow: '0 4px 20px rgba(201,168,76,0.3)',
-          }}>C</div>
-          <div style={{ color: '#C9A84C', fontSize: 18, fontWeight: 700, letterSpacing: '0.15em' }}>
-            CIGAR CLUB
+            padding: 12,
+            boxShadow: '0 8px 40px rgba(230,154,78,0.08), 0 2px 12px rgba(0,0,0,0.6)',
+          }}>
+            <img
+              src={logoIcon}
+              alt="GOAT CIGAR CLUB"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
-          <div style={{ color: '#4A4540', fontSize: 12, marginTop: 4, letterSpacing: '0.1em' }}>
+          <div style={{ color: '#e69a4e', fontSize: 18, fontWeight: 700, letterSpacing: '0.14em' }}>
+            GOAT CIGAR CLUB
+          </div>
+          <div style={{ color: '#5C5248', fontSize: 12, marginTop: 4, letterSpacing: '0.08em' }}>
             管理后台系统
           </div>
         </div>
@@ -98,7 +106,7 @@ export default function LoginPage() {
             <Input
               prefix={<UserOutlined style={{ color: '#4A4540' }} />}
               placeholder="管理员账号"
-              style={{ background: '#1F1F1F', border: '1px solid rgba(201,168,76,0.2)', color: '#F5F0E8', borderRadius: 8 }}
+              style={{ background: '#1F1F1F', border: '1px solid rgba(180,122,68,0.18)', color: '#F5F0E8', borderRadius: 8 }}
             />
           </Form.Item>
 
@@ -106,8 +114,8 @@ export default function LoginPage() {
             <Input.Password
               prefix={<LockOutlined style={{ color: '#4A4540' }} />}
               placeholder="登录密码"
-              iconRender={v => v ? <EyeTwoTone twoToneColor="#C9A84C" /> : <EyeInvisibleOutlined style={{ color: '#4A4540' }} />}
-              style={{ background: '#1F1F1F', border: '1px solid rgba(201,168,76,0.2)', color: '#F5F0E8', borderRadius: 8 }}
+              iconRender={v => v ? <EyeTwoTone twoToneColor="#e69a4e" /> : <EyeInvisibleOutlined style={{ color: '#4A4540' }} />}
+              style={{ background: '#1F1F1F', border: '1px solid rgba(180,122,68,0.18)', color: '#F5F0E8', borderRadius: 8 }}
             />
           </Form.Item>
 
@@ -128,8 +136,8 @@ export default function LoginPage() {
               disabled={failCount >= 5}
               style={{
                 height: 44, borderRadius: 8, fontWeight: 600, fontSize: 15,
-                background: 'linear-gradient(135deg, #E8C97A, #C9A84C, #7A6430)',
-                border: 'none', color: '#1A1208',
+                background: 'linear-gradient(135deg, #e5ac5d, #e69a4e, #b47a44)',
+                border: 'none', color: '#010504',
               }}
             >
               {loading ? '验证中...' : '登 录'}

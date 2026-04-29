@@ -4,6 +4,7 @@ import { DeleteOutlined, EyeInvisibleOutlined, PlusOutlined, CloseOutlined, Star
 import { mockReviews, mockSensitiveWords, cigarRatingSummary } from '../../mock/reviews'
 import PageHeader from '../../components/PageHeader'
 import StatusBadge from '../../components/StatusBadge'
+import MemberLevelBadge from '../../components/MemberLevelBadge'
 
 function StarRating({ value }) {
   return (
@@ -40,11 +41,19 @@ export default function Reviews() {
 
   const reviewColumns = [
     {
-      title: '用户', dataIndex: 'userName', key: 'userName', width: 90,
-      render: v => <span style={{ color: '#F5F0E8' }}>{v}</span>,
+      title: '用户', key: 'user', width: 180,
+      render: (_, r) => (
+        <div>
+          <div style={{ color: '#F5F0E8', fontWeight: 600, fontSize: 13 }}>{r.userName}</div>
+          <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+            <MemberLevelBadge type="recharge" level={r.rechargeLevel} size="small" />
+            <MemberLevelBadge type="consumption" level={r.consumptionLevel} size="small" />
+          </div>
+        </div>
+      ),
     },
     {
-      title: '雪茄', dataIndex: 'cigarName', key: 'cigarName', width: 200,
+      title: '雪茄', dataIndex: 'cigarName', key: 'cigarName', width: 180,
       render: v => <span style={{ color: '#C9A84C', fontSize: 13 }}>{v}</span>,
     },
     {
@@ -158,7 +167,7 @@ export default function Reviews() {
 
   return (
     <div>
-      <PageHeader title="评价管理" subtitle="管理商品评分数据与用户评论，过滤违规内容" />
+      <PageHeader title="评价管理" subtitle="管理商品评分数据与用户评论，查看会员双等级信息，过滤违规内容" />
       <div style={{ background: '#161616', border: '1px solid rgba(201,168,76,0.12)', borderRadius: 12, padding: 20 }}>
         <Tabs items={tabItems} />
       </div>

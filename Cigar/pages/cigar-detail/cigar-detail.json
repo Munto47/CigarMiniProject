@@ -4,6 +4,7 @@
     "flavor-radar":    "/components/flavor-radar/flavor-radar",
     "pairing-chip":    "/components/pairing-chip/pairing-chip",
     "cigar-rating":    "/components/cigar-rating/cigar-rating",
+    "member-level-badge": "/components/member-level-badge/member-level-badge",
     "custom-tab-bar":  "/custom-tab-bar/index"
   },
   "navigationStyle": "custom"

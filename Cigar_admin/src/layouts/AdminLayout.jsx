@@ -8,6 +8,7 @@ import {
   MenuUnfoldOutlined, BellOutlined, AppstoreOutlined,
 } from '@ant-design/icons'
 import useStore from '../store/useStore'
+import logoIcon from '../assets/pure_img.png'
 
 const { Sider, Header, Content } = Layout
 const { Text } = Typography
@@ -81,21 +82,25 @@ export default function AdminLayout() {
         <div style={{
           height: 64, display: 'flex', alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
-          padding: collapsed ? 0 : '0 20px',
-          borderBottom: '1px solid rgba(201,168,76,0.12)',
+          padding: collapsed ? '8px' : '0 18px',
+          borderBottom: '1px solid rgba(180,122,68,0.1)',
           gap: 10,
           flexShrink: 0,
         }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            background: 'linear-gradient(135deg, #E8C97A, #C9A84C, #7A6430)',
+            width: collapsed ? 38 : 40, height: collapsed ? 38 : 40, borderRadius: 10, flexShrink: 0,
+            background: '#010504',
+            border: '1.5px solid rgba(230,154,78,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, fontWeight: 700, color: '#1A1208',
-          }}>C</div>
+            padding: 7,
+            boxShadow: '0 2px 16px rgba(230,154,78,0.06)',
+          }}>
+            <img src={logoIcon} alt="GOAT CIGAR CLUB" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
           {!collapsed && (
-            <div>
-              <div style={{ color: '#C9A84C', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>CIGAR CLUB</div>
-              <div style={{ color: '#4A4540', fontSize: 11, lineHeight: 1.2 }}>管理后台</div>
+            <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#e69a4e', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>GOAT CIGAR CLUB</div>
+              <div style={{ color: '#5C5248', fontSize: 11, lineHeight: 1.2 }}>管理后台</div>
             </div>
           )}
         </div>

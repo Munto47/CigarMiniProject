@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "navigation-bar": "/components/navigation-bar/navigation-bar"
+    "navigation-bar": "/components/navigation-bar/navigation-bar",
+    "member-level-badge": "/components/member-level-badge/member-level-badge"
   },
   "navigationStyle": "custom"
 }

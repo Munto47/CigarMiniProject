@@ -159,19 +159,24 @@
 
     <!-- 评论列表 -->
     <view wx:for="{{reviews}}" wx:key="id" class="review-item">
+      <!-- 第一行：头像 + 身份条 + 时间 -->
       <view class="review-item__header">
-        <!-- 头像 -->
         <view class="review-avatar">
           <text class="review-avatar__text">{{item.avatar}}</text>
         </view>
-        <!-- 昵称 + 评分 -->
-        <view class="review-item__meta">
-          <text class="review-item__name">{{item.name}}</text>
+        <view class="review-item__identity">
+          <!-- 身份条：VIP 徽章 + 昵称 + 雪茄徽章 -->
+          <view class="review-item__id-strip">
+            <member-level-badge type="recharge" level="{{item.rechargeLevel}}" size="sm" />
+            <text class="review-item__name">{{item.name}}</text>
+            <member-level-badge type="consume" level="{{item.consumeLevel}}" size="sm" />
+          </view>
+          <!-- 评分 -->
           <cigar-rating value="{{item.rating}}" readonly="{{true}}" size="sm" />
         </view>
-        <!-- 时间 -->
         <text class="review-item__time">{{item.time}}</text>
       </view>
+      <!-- 第二行：评论内容 -->
       <text class="review-item__content">{{item.content}}</text>
     </view>
 

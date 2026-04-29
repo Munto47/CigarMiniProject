@@ -7,33 +7,44 @@
 .member-card {
   margin: var(--space-md) var(--space-lg);
   padding: var(--space-lg);
-  background: linear-gradient(135deg, #1A1208 0%, #2A1E0A 50%, #1A1208 100%);
+  background: linear-gradient(160deg, #100C06 0%, #1E150A 40%, #1A1208 70%, #0F0B05 100%);
   border-radius: var(--radius-lg);
   border: 1rpx solid var(--border-strong);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-gold);
+  box-shadow:
+    0 4rpx 32rpx rgba(0,0,0,0.5),
+    0 0 60rpx rgba(201,168,76,0.06);
   animation: fadeIn 500ms ease both;
 }
 
-/* 装饰圆 */
 .member-card__bg { position: absolute; inset: 0; pointer-events: none; }
+
+.mc-logo-bg {
+  position: absolute;
+  right: 20rpx;
+  top: 20rpx;
+  width: 200rpx;
+  height: 200rpx;
+  opacity: 0.05;
+  pointer-events: none;
+}
 
 .mc-deco {
   position: absolute;
   border-radius: 50%;
   border: 1rpx solid rgba(201,168,76,0.12);
 }
-.mc-deco--1 { width: 400rpx; height: 400rpx; top: -200rpx; right: -100rpx; }
-.mc-deco--2 { width: 240rpx; height: 240rpx; bottom: -80rpx; left: -40rpx; border-color: rgba(201,168,76,0.08); }
-.mc-deco--3 { width: 120rpx; height: 120rpx; top: 40rpx; right: 80rpx; border-color: rgba(201,168,76,0.06); }
+.mc-deco--1 { width: 440rpx; height: 440rpx; top: -220rpx; right: -110rpx; border-color: rgba(201,168,76,0.15); }
+.mc-deco--2 { width: 260rpx; height: 260rpx; bottom: -100rpx; left: -50rpx; border-color: rgba(201,168,76,0.08); }
+.mc-deco--3 { width: 140rpx; height: 140rpx; top: 80rpx; right: 100rpx; border-color: rgba(201,168,76,0.06); }
 
 .mc-user {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 .mc-avatar {
@@ -45,6 +56,7 @@
   align-items: center;
   justify-content: center;
   border: 2rpx solid rgba(232,201,122,0.4);
+  box-shadow: 0 0 20rpx rgba(201,168,76,0.2);
 }
 
 .mc-avatar__init {
@@ -55,64 +67,163 @@
 
 .mc-name {
   display: block;
-  font-size: 36rpx;
+  font-size: 38rpx;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 8rpx;
+  margin-bottom: 6rpx;
+  letter-spacing: 0.04em;
 }
 
-.level-badge {
-  display: inline-flex;
-  background: rgba(201,168,76,0.15);
-  border: 1rpx solid var(--border-subtle);
-  border-radius: var(--radius-full);
-  padding: 4rpx 16rpx;
-}
-
-.level-text {
-  font-size: 18rpx;
+.mc-discount {
+  font-size: 20rpx;
   color: var(--color-gold);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.08em;
 }
 
 .mc-balance {
-  margin-bottom: 8rpx;
+  margin-bottom: var(--space-lg);
 }
 
 .mc-balance__label {
   display: block;
   font-size: 22rpx;
   color: var(--text-secondary);
-  margin-bottom: 4rpx;
+  margin-bottom: 2rpx;
+  letter-spacing: 0.05em;
 }
 
 .mc-balance__amount {
   display: block;
-  font-size: 56rpx;
+  font-size: 60rpx;
   font-weight: 700;
   color: var(--color-gold-light);
   letter-spacing: 0.02em;
+  text-shadow: 0 0 30rpx rgba(232,201,122,0.15);
 }
 
-.mc-points {
+/* ════════════ 双等级对称面板 ════════════ */
+
+.mc-level-panels {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
+  gap: 20rpx;
   margin-bottom: var(--space-lg);
 }
 
-.mc-points__label {
+.mc-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+  padding: var(--space-md) var(--space-sm);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 4rpx 20rpx rgba(0,0,0,0.45),
+    inset 0 1rpx 0 rgba(201,168,76,0.04);
+}
+
+/* 充值面板 — 暖金底 */
+.mc-panel--recharge {
+  background: linear-gradient(160deg,
+    rgba(32,22,8,0.95) 0%,
+    rgba(38,26,10,0.9) 50%,
+    rgba(28,18,6,0.95) 100%
+  );
+  border: 1rpx solid rgba(232,201,122,0.28);
+}
+
+/* 消费面板 — 棕木底 */
+.mc-panel--consume {
+  background: linear-gradient(160deg,
+    rgba(24,18,10,0.95) 0%,
+    rgba(30,22,12,0.9) 50%,
+    rgba(22,15,8,0.95) 100%
+  );
+  border: 1rpx solid rgba(201,168,76,0.18);
+}
+
+/* ── 面板内各行的样式（两面板共用，自动对齐） ── */
+
+/* 行1：徽章 — 由 member-level-badge 自行撑高 */
+/* 行2：类型标签 */
+.mc-panel__label {
   font-size: 22rpx;
-  color: var(--text-secondary);
+  color: var(--text-disabled);
+  letter-spacing: 0.1em;
+  text-align: center;
+  /* 固定行高确保两面板对齐 */
+  line-height: 1;
 }
 
-.mc-points__val {
-  font-size: 24rpx;
-  color: var(--color-gold);
-  font-weight: 600;
+/* 行3：进度条 */
+.mc-panel__bar {
+  width: 100%;
+  height: 8rpx;
+  background: rgba(201,168,76,0.1);
+  border-radius: 4rpx;
+  overflow: hidden;
 }
 
+.mc-panel__bar-fill {
+  position: relative;
+  height: 100%;
+  background: linear-gradient(90deg,
+    var(--color-gold-dim) 0%,
+    var(--color-gold) 45%,
+    var(--color-gold-light) 100%
+  );
+  border-radius: 4rpx;
+  overflow: hidden;
+  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mc-panel__bar-shine {
+  position: absolute;
+  top: 0;
+  left: -40rpx;
+  width: 40rpx;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255,255,255,0.25),
+    transparent
+  );
+  animation: barShine 2.4s ease-in-out infinite;
+}
+
+@keyframes barShine {
+  0%   { left: -40rpx; }
+  100% { left: 100%; }
+}
+
+/* 行4：升级提示 */
+.mc-panel__hint {
+  font-size: 19rpx;
+  color: var(--text-disabled);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* 行5：积分数字 */
+.mc-panel__score {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--color-gold-light);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.mc-panel__score-unit {
+  font-size: 18rpx;
+  font-weight: 400;
+  color: var(--text-disabled);
+  letter-spacing: 0.05em;
+}
+
+/* 操作 */
 .mc-actions {
   display: flex;
   flex-direction: row;
@@ -121,7 +232,7 @@
 
 .mc-btn {
   flex: 1;
-  padding: 24rpx;
+  padding: 26rpx;
   font-size: 28rpx;
 }
 

@@ -17,46 +17,25 @@
   margin-bottom: var(--space-xl);
 }
 
-.cigar-silhouette {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  position: relative;
-  height: 120rpx;
-}
-
-.cigar-body {
-  width: 280rpx;
-  height: 52rpx;
-  background: linear-gradient(90deg, #7A6430 0%, #C9A84C 40%, #E8C97A 60%, #C9A84C 100%);
-  border-radius: 26rpx 8rpx 8rpx 26rpx;
+.logo-container {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 200rpx;
+  height: 200rpx;
 }
 
-.cigar-band {
-  position: absolute;
-  left: 80rpx;
-  width: 40rpx;
-  height: 100%;
-  background: rgba(0,0,0,0.3);
-  border-left: 1rpx solid rgba(232,201,122,0.6);
-  border-right: 1rpx solid rgba(232,201,122,0.6);
-}
-
-.cigar-tip {
-  width: 24rpx;
-  height: 24rpx;
-  background: linear-gradient(135deg, #E8C97A, #C9A84C);
-  border-radius: 50%;
-  margin-left: -4rpx;
+.logo-pure {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: var(--radius-sm);
 }
 
 .smoke-wrap {
   position: absolute;
-  top: -48rpx;
-  right: -8rpx;
+  top: -20rpx;
+  right: -30rpx;
   display: flex;
   flex-direction: row;
   gap: 6rpx;

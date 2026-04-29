@@ -12,11 +12,13 @@
   <view wx:if="{{stage === 'welcome'}}" class="welcome-screen">
     <!-- 品牌标志 -->
     <view class="brand-logo">
-      <view class="cigar-silhouette">
-        <view class="cigar-body">
-          <view class="cigar-band"></view>
-        </view>
-        <view class="cigar-tip"></view>
+      <view class="logo-container">
+        <image
+          class="logo-pure"
+          src="/images/pure_img.png"
+          mode="aspectFit"
+          lazy-load
+        />
         <view class="smoke-wrap">
           <view class="smoke smoke-1"></view>
           <view class="smoke smoke-2"></view>
@@ -27,7 +29,7 @@
 
     <!-- 标题区 -->
     <view class="welcome-title-wrap">
-      <text class="welcome-eyebrow">CIGAR CLUB</text>
+      <text class="welcome-eyebrow">GOAT CIGAR CLUB</text>
       <text class="welcome-title">发现属于你的</text>
       <text class="welcome-title welcome-title--gold">专属雪茄</text>
     </view>

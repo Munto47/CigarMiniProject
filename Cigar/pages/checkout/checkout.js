@@ -15,6 +15,12 @@ Page({
     payMethod: 'balance',  // 'balance' | 'meituan'
     paying:    false,
 
+    /* ── 当前用户会员等级 ── */
+    memberLevel: {
+      rechargeLevel: 8,
+      consumeLevel: 7
+    },
+
     /* ── 评价弹窗 ── */
     showRateModal: false,
     rateScore:     0,

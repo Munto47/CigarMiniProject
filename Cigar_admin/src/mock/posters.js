@@ -28,8 +28,8 @@ export const mockPosters = [
 export const mockPosterTemplate = {
   logo: null,
   bgColor: '#0D0D0D',
-  accentColor: '#C9A84C',
+  accentColor: '#e69a4e',
   fontStyle: 'classic',
-  clubName: 'CIGAR CLUB',
-  tagline: '发现属于你的专属雪茄',
+  clubName: 'GOAT CIGAR CLUB',
+  tagline: '山羊雪茄俱乐部 · 发现专属风味',
 }

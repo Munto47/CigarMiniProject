@@ -42,7 +42,7 @@ export default function Settings() {
         <div style={{ maxWidth: 560 }}>
           <div style={{ background: '#161616', border: '1px solid rgba(201,168,76,0.12)', borderRadius: 12, padding: 24 }}>
             <FormSection title="品牌信息">
-              <Form layout="vertical" initialValues={{ clubName: 'CIGAR CLUB', tagline: '发现属于你的专属雪茄' }}>
+              <Form layout="vertical" initialValues={{ clubName: 'GOAT CIGAR CLUB', tagline: '山羊雪茄俱乐部 · 发现专属风味' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                   <Form.Item label="俱乐部名称" name="clubName">
                     <Input style={{ background: '#1F1F1F', borderColor: 'rgba(201,168,76,0.2)' }} />

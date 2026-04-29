@@ -17,10 +17,22 @@ Page({
   data: {
     member: {
       name: '雪茄绅士',
-      level: 'GOLD',
       balance: 3680,
-      points: 12580,
-      avatar: ''
+      discount: '9.0 折',
+      recharge: {
+        level: 8,
+        points: 7350,
+        nextLevel: 9,
+        remain: 650,
+        progress: 91.9   // 7350 / 8000 * 100
+      },
+      consume: {
+        level: 7,
+        points: 6820,
+        nextLevel: 8,
+        remain: 180,
+        progress: 97.4   // 6820 / 7000 * 100
+      }
     },
     gridItems: GRID_ITEMS,
     banners: MOCK_BANNERS,
@@ -50,5 +62,13 @@ Page({
 
   onGridTap(e) {
     this.viewDetail(e.currentTarget.dataset.index)
+  },
+
+  onShareAppMessage() {
+    return {
+      title: 'GOAT CIGAR CLUB - 山羊雪茄俱乐部',
+      path: '/pages/club/club',
+      imageUrl: '/images/pure_img.png'
+    }
   }
 })

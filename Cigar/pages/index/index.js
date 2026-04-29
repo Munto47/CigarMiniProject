@@ -157,5 +157,13 @@ Page({
 
   restart() {
     this.setData({ stage: 'welcome', currentQ: 0, answers: {}, results: [] })
+  },
+
+  onShareAppMessage() {
+    return {
+      title: 'GOAT CIGAR CLUB - 发现属于你的专属雪茄',
+      path: '/pages/index/index',
+      imageUrl: '/images/pure_img.png'
+    }
   }
 })

@@ -45,5 +45,13 @@ Page({
 
   shareRecord(e) {
     wx.showToast({ title: '海报生成中...', icon: 'none' })
+  },
+
+  onShareAppMessage() {
+    return {
+      title: 'GOAT CIGAR CLUB - 我的品鉴记录',
+      path: '/pages/history/history',
+      imageUrl: '/images/pure_img.png'
+    }
   }
 })

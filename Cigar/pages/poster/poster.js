@@ -1,4 +1,4 @@
-const CLUB_NAME = '皇家雪茄俱乐部'
+const CLUB_NAME = '山羊雪茄俱乐部'
 
 Page({
   data: {
@@ -46,11 +46,15 @@ Page({
       canvas.height = canvasWidth * dpr
       const ctx = canvas.getContext('2d')
       ctx.scale(dpr, dpr)
-      this._render(ctx, canvasWidth)
+
+      const logoImg = canvas.createImage()
+      logoImg.src = '/images/img_with_word.png'
+      logoImg.onload = () => this._render(ctx, canvasWidth, logoImg)
+      logoImg.onerror = () => this._render(ctx, canvasWidth, null)
     })
   },
 
-  _render(ctx, size) {
+  _render(ctx, size, logoImage) {
     const { flavors, transcript } = this.data
     const gold = '#C9A84C'
     const goldLight = '#E8C97A'
@@ -123,14 +127,14 @@ Page({
     ctx.lineWidth = 0.5
     ctx.stroke()
 
-    // 底部品牌区（固定位置）
-    // LOGO 占位（左）
-    ctx.fillStyle = 'rgba(201,168,76,0.4)'
-    ctx.fillRect(24, size - 72, 32, 32)
-    ctx.fillStyle = '#0D0D0D'
-    ctx.font = `bold ${size * 0.02}px 'KaiTi', 'STKaiti', '楷体', serif`
-    ctx.textAlign = 'center'
-    ctx.fillText('LOGO', 40, size - 56)
+    // 底部品牌区
+    if (logoImage) {
+      const logoW = size * 0.3
+      const logoH = logoW * (logoImage.height / logoImage.width)
+      const logoX = 24
+      const logoY = size - logoH - 24
+      ctx.drawImage(logoImage, logoX, logoY, logoW, logoH)
+    }
 
     // 俱乐部名（中）
     ctx.fillStyle = textSec
@@ -182,6 +186,14 @@ Page({
 
   reRecord() {
     this.setData({ stage: 'record', transcript: '' })
+  },
+
+  onShareAppMessage() {
+    return {
+      title: 'GOAT CIGAR CLUB - 我的专属雪茄风味海报',
+      path: '/pages/poster/poster',
+      imageUrl: '/images/pure_img.png'
+    }
   },
 
   savePoster() {

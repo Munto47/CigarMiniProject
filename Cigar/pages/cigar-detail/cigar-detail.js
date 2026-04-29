@@ -11,6 +11,8 @@ const MOCK_REVIEWS = [
     avatar: '林',
     name: '林先生',
     rating: 5,
+    rechargeLevel: 8,
+    consumeLevel: 7,
     time: '2024-06-18',
     content: '极致的品鉴体验，前段奶油清爽，中段木质与咖啡交织，层次之丰富令人叹服。尾段余韵悠长绵密。配上格兰菲迪18年简直是人生享受。'
   },
@@ -19,6 +21,8 @@ const MOCK_REVIEWS = [
     avatar: '陈',
     name: 'C. Thompson',
     rating: 4,
+    rechargeLevel: 5,
+    consumeLevel: 6,
     time: '2024-06-12',
     content: '作为 Cohiba 深度爱好者，Behike 52 确实代表古巴雪茄高峰。烟气细腻复杂，但包叶稍紧，影响了一点通气感。总体仍是四星半水准。'
   },
@@ -27,6 +31,8 @@ const MOCK_REVIEWS = [
     avatar: '王',
     name: '王先生',
     rating: 5,
+    rechargeLevel: 9,
+    consumeLevel: 9,
     time: '2024-06-05',
     content: '第一次品鉴 Behike 系列，被其独特的 Medio Tiempo 叶彻底折服。强度均衡却层次感超越任何我品鉴过的古巴雪茄，值得每一分价格。'
   }
@@ -127,7 +133,7 @@ Page({
     reviewMeta: { avgScore: 4.7, totalCount: 128 },
 
     /* ── 评论 Modal ── */
-    isLoggedIn: false,   // Mock：切换为 true 可测试登录态
+    isLoggedIn: true,    // Mock：当前已登录
     showReviewModal: false,
     myRating: 0,
     reviewText: ''
@@ -201,12 +207,14 @@ Page({
       return
     }
 
-    /* Mock 成功：将新评论插入列表首位 */
+    /* Mock 成功：将新评论插入列表首位，附带当前用户等级 */
     const newReview = {
       id:      Date.now(),
       avatar:  '我',
       name:    '您（Mock）',
       rating:  myRating,
+      rechargeLevel: 6,
+      consumeLevel: 5,
       time:    new Date().toISOString().slice(0, 10),
       content: reviewText.trim()
     }
