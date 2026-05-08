@@ -1,0 +1,56 @@
+<view class="modal-wrap">
+  <view wx:if="{{visible}}" class="modal-mask" catchtap="noop">
+    <view class="modal-card" catchtap="noop">
+
+      <!-- 品牌标识 -->
+      <view class="modal-logo-wrap">
+        <image class="modal-logo" src="/images/pure_img.png" mode="aspectFit" />
+        <view class="smoke-wrap">
+          <view class="smoke smoke-1"></view>
+          <view class="smoke smoke-2"></view>
+          <view class="smoke smoke-3"></view>
+        </view>
+      </view>
+
+      <!-- 标题 -->
+      <view class="modal-title-wrap">
+        <text class="modal-eyebrow">GOAT CIGAR CLUB</text>
+        <text class="modal-title">登录解锁专属体验</text>
+      </view>
+
+      <!-- 权益列表 -->
+      <view class="modal-features">
+        <view class="feature-item">
+          <view class="feature-dot"></view>
+          <text class="feature-text">AI 智能雪茄推荐，精准匹配偏好</text>
+        </view>
+        <view class="feature-item">
+          <view class="feature-dot"></view>
+          <text class="feature-text">会员积分与俱乐部专属权益</text>
+        </view>
+        <view class="feature-item">
+          <view class="feature-dot"></view>
+          <text class="feature-text">订单管理与一键配送到家</text>
+        </view>
+      </view>
+
+      <!-- 登录按钮 -->
+      <view
+        class="login-btn {{loading ? 'login-btn--loading' : ''}}"
+        bindtap="onLogin"
+      >
+        <view wx:if="{{loading}}" class="login-spinner"></view>
+        <text>{{loading ? '登录中...' : '微信一键登录'}}</text>
+      </view>
+
+      <!-- 跳过 -->
+      <view class="skip-btn" bindtap="onSkip">
+        <text>稍后再说</text>
+      </view>
+
+      <!-- 协议提示 -->
+      <text class="modal-tip">登录即表示同意《用户协议》及《隐私政策》</text>
+
+    </view>
+  </view>
+</view>

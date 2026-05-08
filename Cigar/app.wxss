@@ -97,6 +97,12 @@ page {
   background: rgba(201, 168, 76, 0.08);
 }
 
+.ghost-btn--done {
+  color: var(--color-text-sec, #9E9484);
+  border-color: rgba(158, 148, 132, 0.3);
+  opacity: 0.7;
+}
+
 /* ── 区块标题（使用楷体增强东方韵味） ── */
 .section-title {
   font-size: 36rpx;

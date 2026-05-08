@@ -7,7 +7,18 @@
 
 <scroll-view class="club-page" scroll-y>
 
+  <!-- ── 未登录引导 ── -->
+  <view wx:if="{{showLoginTip}}" class="login-tip-wrap">
+    <view class="login-tip-card">
+      <text class="login-tip-icon">◈</text>
+      <text class="login-tip-title">登录后享受会员权益</text>
+      <text class="login-tip-desc">充值等级 · 消费积分 · 专属折扣</text>
+      <view class="login-tip-btn gold-btn" bindtap="doLogin">立即登录</view>
+    </view>
+  </view>
+
   <!-- ── 会员卡 Hero ── -->
+  <block wx:if="{{!showLoginTip}}">
   <view class="member-card">
     <view class="member-card__bg">
       <view class="mc-deco mc-deco--1"></view>
@@ -18,7 +29,7 @@
 
     <view class="mc-user">
       <view class="mc-avatar">
-        <text class="mc-avatar__init">{{member.name.slice(0,1)}}</text>
+        <text class="mc-avatar__init">{{member.nameInitial}}</text>
       </view>
       <view class="mc-user__info">
         <text class="mc-name">{{member.name}}</text>
@@ -47,7 +58,7 @@
           </view>
         </view>
         <!-- 行4：升级提示 -->
-        <text class="mc-panel__hint">距 V{{member.recharge.nextLevel}} 还差 {{member.recharge.remain}} 积分</text>
+        <text class="mc-panel__hint">距 {{member.recharge.nextLevel}} 还差 {{member.recharge.remain}} 积分</text>
         <!-- 行5：积分值 -->
         <text class="mc-panel__score">{{member.recharge.points}}<text class="mc-panel__score-unit"> 充值积分</text></text>
       </view>
@@ -61,7 +72,7 @@
             <view class="mc-panel__bar-shine"></view>
           </view>
         </view>
-        <text class="mc-panel__hint">距 V{{member.consume.nextLevel}} 还差 {{member.consume.remain}} 积分</text>
+        <text class="mc-panel__hint">距 {{member.consume.nextLevel}} 还差 {{member.consume.remain}} 积分</text>
         <text class="mc-panel__score">{{member.consume.points}}<text class="mc-panel__score-unit"> 消费积分</text></text>
       </view>
 
@@ -71,7 +82,7 @@
       <view class="mc-btn gold-btn" bindtap="topup">
         <text>充值</text>
       </view>
-      <view class="mc-btn ghost-btn">
+      <view class="mc-btn ghost-btn" bindtap="viewDetail">
         <text>明细</text>
       </view>
     </view>
@@ -124,4 +135,57 @@
   </view>
 
   <view class="tab-safe-bottom"></view>
+  </block><!-- /wx:if !showLoginTip -->
+
 </scroll-view>
+
+<!-- ══ 充值档位弹窗 ══ -->
+<view wx:if="{{showTopupModal}}" class="topup-mask" bindtap="closeTierModal">
+  <view class="topup-panel" catchtap="noop">
+
+    <!-- 拖拽指示条 -->
+    <view class="topup-handle"></view>
+
+    <!-- 标题 -->
+    <view class="topup-header">
+      <text class="topup-title">选择充值档位</text>
+      <text class="topup-subtitle">充值即获对应积分，提升会员等级</text>
+    </view>
+
+    <!-- 档位网格 -->
+    <view class="topup-tiers">
+      <view
+        wx:for="{{tiers}}"
+        wx:key="id"
+        class="tier-card {{selectedTierIndex === index ? 'tier-card--active' : ''}}"
+        bindtap="selectTier"
+        data-index="{{index}}"
+      >
+        <view wx:if="{{item.bonusYuan}}" class="tier-bonus-badge">
+          <text>+赠{{item.bonusYuan}}元</text>
+        </view>
+        <text class="tier-amount">¥{{item.amountYuan}}</text>
+        <text class="tier-label">充值金额</text>
+      </view>
+    </view>
+
+    <!-- 选中档位说明 -->
+    <view wx:if="{{selectedTierIndex >= 0}}" class="topup-selected-info">
+      <text class="topup-info-text">
+        充值 ¥{{tiers[selectedTierIndex].amountYuan}}
+        {{tiers[selectedTierIndex].bonusYuan ? '·赠 ¥' + tiers[selectedTierIndex].bonusYuan : ''}}
+      </text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="topup-actions">
+      <view class="gold-btn topup-confirm" bindtap="confirmRecharge">
+        <text>立即充值</text>
+      </view>
+      <view class="ghost-btn topup-cancel" bindtap="closeTierModal">
+        <text>暂不充值</text>
+      </view>
+    </view>
+
+  </view>
+</view>

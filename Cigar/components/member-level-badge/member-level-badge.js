@@ -6,20 +6,31 @@ Component({
   },
 
   data: {
-    levelText: 'V1'
+    levelText: '',
+    levelImage: '',
+    cigarImage: ''
   },
 
   observers: {
-    level(val) {
-      const v = Math.min(9, Math.max(1, val || 1))
-      this.setData({ levelText: 'V' + v })
+    'type, level'(type, level) {
+      this._updateBadge(type, level)
     }
   },
 
   lifetimes: {
     attached() {
-      const v = Math.min(9, Math.max(1, this.data.level || 1))
-      this.setData({ levelText: 'V' + v })
+      this._updateBadge(this.data.type, this.data.level)
+    }
+  },
+
+  methods: {
+    _updateBadge(type, level) {
+      const v = Math.min(9, Math.max(1, level || 1))
+      this.setData({
+        levelText: type === 'consume' ? String(v) : '',
+        levelImage: `/src/level/level_${v}.png`,
+        cigarImage: `/src/cigar/cigar_${v}.png`
+      })
     }
   }
 })

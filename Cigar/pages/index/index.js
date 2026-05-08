@@ -1,88 +1,18 @@
-const QUESTIONS = [
-  {
-    id: 1,
-    question: '您通常在什么场合享用雪茄？',
-    type: 'single',
-    options: ['商务会谈', '独处休闲', '朋友聚会', '庆祝特殊场合']
-  },
-  {
-    id: 2,
-    question: '您偏好哪种雪茄强度？',
-    type: 'single',
-    options: ['轻柔温和', '均衡适中', '浓郁丰厚', '醇厚强劲']
-  },
-  {
-    id: 3,
-    question: '您喜欢哪些风味特征？（可多选）',
-    type: 'multi',
-    options: ['果香甜润', '木质烟草', '泥土矿物', '咖啡可可', '辛香胡椒', '奶油丝滑']
-  },
-  {
-    id: 4,
-    question: '您计划品鉴多长时间？',
-    type: 'single',
-    options: ['30 分钟以内', '30–60 分钟', '1–2 小时', '悠然不限']
-  },
-  {
-    id: 5,
-    question: '您的雪茄品鉴经验如何？',
-    type: 'single',
-    options: ['初次尝试', '偶尔品鉴', '资深爱好者', '专业玩家']
-  }
-]
-
-const MOCK_RESULTS = [
-  {
-    id: 1,
-    name: 'Cohiba Behike 52',
-    origin: '古巴',
-    year: '2022',
-    strength: '均衡',
-    duration: '约 60 分钟',
-    price: 1280,
-    rating: 97,
-    tags: ['咖啡', '木质', '奶油'],
-    scores: { 果香: 40, 木香: 75, 烟草: 85, 辛辣: 55, 土壤: 65, 甜感: 60 },
-    match: 98
-  },
-  {
-    id: 2,
-    name: 'Davidoff Winston Churchill',
-    origin: '多米尼加',
-    year: '2021',
-    strength: '中等',
-    duration: '约 45 分钟',
-    price: 680,
-    rating: 94,
-    tags: ['果香', '木质', '辛香'],
-    scores: { 果香: 65, 木香: 70, 烟草: 60, 辛辣: 45, 土壤: 50, 甜感: 75 },
-    match: 94
-  },
-  {
-    id: 3,
-    name: 'Arturo Fuente OpusX',
-    origin: '多米尼加',
-    year: '2022',
-    strength: '浓郁',
-    duration: '约 90 分钟',
-    price: 960,
-    rating: 96,
-    tags: ['皮革', '木质', '泥土'],
-    scores: { 果香: 30, 木香: 80, 烟草: 90, 辛辣: 70, 土壤: 85, 甜感: 35 },
-    match: 91
-  }
-]
+const { getRecommendQuestions, getRecommendations, addToCart } = require('../../utils/api')
+const { isLoggedIn } = require('../../utils/request')
 
 Page({
   data: {
-    // 'welcome' | 'qa' | 'loading' | 'result'
     stage: 'welcome',
     currentQ: 0,
-    questions: QUESTIONS,
+    questions: [],
     answers: {},
     results: [],
     cardAnimClass: 'card-enter',
-    welcomeVisible: true
+    welcomeVisible: true,
+    loadingText: 'AI 正在为您匹配最佳雪茄...',
+    loadError: false,
+    loginModalVisible: false,
   },
 
   onShow() {
@@ -90,9 +20,68 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
     }
+
+    // 恢复上次推荐结果（会话级持久化，退出应用自动清除）
+    const saved = getApp().globalData.recommendState
+    if (saved && saved.stage === 'result') {
+      if (this.data.stage !== 'result') {
+        this.setData({ stage: saved.stage, results: saved.results })
+      }
+      return
+    }
+
+    if (this.data.questions.length === 0) {
+      this._loadQuestions()
+    }
+
+    // 进入小程序时检查登录状态，未登录则延迟 800ms 弹出登录提示
+    if (!isLoggedIn() && !this._loginPrompted) {
+      this._loginPrompted = true
+      setTimeout(() => {
+        if (!isLoggedIn()) {
+          this.setData({ loginModalVisible: true })
+        }
+      }, 800)
+    }
+  },
+
+  onLoginModalClose() {
+    this.setData({ loginModalVisible: false })
+  },
+
+  onLoginSuccess() {
+    this.setData({ loginModalVisible: false })
+  },
+
+  async _loadQuestions() {
+    this.setData({ loadError: false })
+    try {
+      const questions = await getRecommendQuestions()
+      if (questions && questions.length > 0) {
+        this.setData({ questions, loadError: false })
+      } else {
+        this.setData({ loadError: true })
+      }
+    } catch {
+      this.setData({ loadError: true })
+    }
+  },
+
+  retryLoad() {
+    this._loadQuestions()
+  },
+
+  async onPullDownRefresh() {
+    await this._loadQuestions()
+    wx.stopPullDownRefresh()
   },
 
   startQA() {
+    const { questions } = this.data
+    if (questions.length === 0) {
+      wx.showToast({ title: '推荐问题加载中，请稍后', icon: 'none' })
+      return
+    }
     this.setData({ stage: 'qa', currentQ: 0, cardAnimClass: 'card-enter' })
   },
 
@@ -100,6 +89,7 @@ Page({
     const { optionIndex } = e.detail
     const { currentQ, questions, answers } = this.data
     const q = questions[currentQ]
+    if (!q) return
     wx.vibrateShort({ type: 'light' })
 
     let newAnswers = { ...answers }
@@ -132,11 +122,35 @@ Page({
     }, 280)
   },
 
-  submitQA() {
+  async submitQA() {
+    const { answers, questions } = this.data
     this.setData({ stage: 'loading' })
-    setTimeout(() => {
-      this.setData({ stage: 'result', results: MOCK_RESULTS })
-    }, 2200)
+
+    // 组装答案格式
+    const answerList = []
+    for (const [qId, indices] of Object.entries(answers)) {
+      for (const idx of indices) {
+        answerList.push({
+          questionId: Number(qId),
+          optionIndex: idx,
+        })
+      }
+    }
+
+    try {
+      const results = await getRecommendations(answerList)
+      if (results && results.length > 0) {
+        this.setData({ stage: 'result', results })
+        getApp().globalData.recommendState = { stage: 'result', results }
+      } else {
+        this.setData({ stage: 'result', results: [] })
+        getApp().globalData.recommendState = { stage: 'result', results: [] }
+        wx.showToast({ title: '暂无匹配结果，请调整偏好重试', icon: 'none' })
+      }
+    } catch {
+      this.setData({ stage: 'welcome' })
+      wx.showToast({ title: '推荐服务暂不可用', icon: 'none' })
+    }
   },
 
   viewDetail(e) {
@@ -144,18 +158,27 @@ Page({
     wx.navigateTo({ url: `/pages/cigar-detail/cigar-detail?id=${id}` })
   },
 
-  addToCart(e) {
+  async addToCart(e) {
     const { id } = e.currentTarget.dataset
     wx.vibrateShort({ type: 'light' })
-    wx.showToast({ title: '已加入购物车', icon: 'none', duration: 1500 })
-    const bar = this.getTabBar && this.getTabBar()
-    if (bar) {
-      const count = (bar.data.cartCount || 0) + 1
-      bar.setData({ cartCount: count })
+
+    if (!isLoggedIn()) {
+      wx.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+      return
+    }
+
+    try {
+      await addToCart({ productType: 'cigar', productId: id, spec: '单支', qty: 1 })
+      wx.showToast({ title: '已加入购物车', icon: 'none', duration: 1500 })
+      const app = getApp()
+      getApp().updateCartBadge((app.globalData.cartCount || 0) + 1)
+    } catch {
+      // 错误提示已在 request 层处理
     }
   },
 
   restart() {
+    getApp().globalData.recommendState = null
     this.setData({ stage: 'welcome', currentQ: 0, answers: {}, results: [] })
   },
 

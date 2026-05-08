@@ -1,32 +1,12 @@
 <view class="mlb-wrap mlb-wrap--{{size}}">
-  <!-- 充值等级：菱形图标 + 等级数字 -->
-  <view wx:if="{{type === 'recharge'}}" class="mlb-badge mlb-badge--vip mlb-badge--{{size}}">
-    <!-- 菱形容器（无文字，纯图标） -->
-    <view class="mlb-icon-box mlb-icon-box--{{size}}">
-      <view class="mlb-vip-diamond">
-        <view class="mlb-vip-diamond__outer"></view>
-        <view class="mlb-vip-diamond__inner"></view>
-      </view>
-      <view class="mlb-icon-glow"></view>
-    </view>
-    <text class="mlb-num mlb-num--{{size}}">{{levelText}}</text>
+  <!-- 充值等级：等级图标（已内置等级数字，不需要额外文字） -->
+  <view wx:if="{{type === 'recharge'}}" class="mlb-badge mlb-badge--recharge mlb-badge--{{size}}">
+    <image class="mlb-icon-img mlb-icon-img--{{size}}" src="{{levelImage}}" mode="aspectFit" lazy-load />
   </view>
 
   <!-- 消费等级：雪茄图标 + 等级数字 -->
   <view wx:else class="mlb-badge mlb-badge--cigar mlb-badge--{{size}}">
-    <!-- 雪茄容器（与菱形同高） -->
-    <view class="mlb-icon-box mlb-icon-box--{{size}}">
-      <view class="mlb-cigar-icon">
-        <view class="mlb-cigar-smoke mlb-cigar-smoke--1"></view>
-        <view class="mlb-cigar-smoke mlb-cigar-smoke--2"></view>
-        <view class="mlb-cigar-body">
-          <view class="mlb-cigar-band"></view>
-        </view>
-        <view class="mlb-cigar-tip">
-          <view class="mlb-cigar-ember"></view>
-        </view>
-      </view>
-    </view>
+    <image class="mlb-icon-img mlb-icon-img--{{size}}" src="{{cigarImage}}" mode="aspectFit" lazy-load />
     <text class="mlb-num mlb-num--{{size}}">{{levelText}}</text>
   </view>
 </view>

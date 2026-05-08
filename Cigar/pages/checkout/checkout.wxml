@@ -12,7 +12,7 @@
     <view class="order-section">
       <text class="order-section__title">订单明细</text>
       <view
-        wx:for="{{order.items}}"
+        wx:for="{{items}}"
         wx:key="id"
         class="order-item"
       >
@@ -38,7 +38,7 @@
       </view>
       <view class="amount-row">
         <text class="amount-label">会员折扣</text>
-        <text class="amount-value amount-value--gold">{{order.discount}}</text>
+        <text class="amount-value amount-value--gold">{{discount !== 0 ? '¥ ' + discount : '无折扣'}}</text>
       </view>
       <view class="amount-divider"></view>
       <view class="amount-row">
@@ -64,7 +64,7 @@
         </view>
         <view class="pay-option__info">
           <text class="pay-option__name">会员储值余额</text>
-          <text class="pay-option__sub">当前余额 ¥ {{order.memberBalance}}</text>
+          <text class="pay-option__sub">当前余额 ¥ {{memberBalance}}</text>
         </view>
         <view class="pay-radio {{payMethod === 'balance' ? 'pay-radio--active' : ''}}">
           <view wx:if="{{payMethod === 'balance'}}" class="pay-radio__dot"></view>
@@ -130,7 +130,7 @@
 
     <!-- 商品缩略图 -->
     <view class="rate-modal__items">
-      <view wx:for="{{order.items}}" wx:key="id" class="rate-modal__item">
+      <view wx:for="{{items}}" wx:key="id" class="rate-modal__item">
         <view class="rate-modal__item-img">
           <view class="rm-mini-body"></view>
           <view class="rm-mini-tip"></view>

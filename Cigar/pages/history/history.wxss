@@ -52,6 +52,8 @@
 /* 历史列表 */
 .history-list {
   flex: 1;
+  height: 0;
+  overflow-y: auto;
 }
 
 .history-group {
@@ -142,10 +144,16 @@
   font-size: 28rpx;
   font-weight: 600;
   color: var(--text-primary);
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.h-item__time {
+  font-size: 20rpx;
+  color: var(--text-disabled);
+  flex-shrink: 0;
+  margin-left: var(--space-sm);
   margin-right: var(--space-xs);
 }
 

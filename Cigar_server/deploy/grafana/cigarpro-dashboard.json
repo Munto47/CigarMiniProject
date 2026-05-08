@@ -1,0 +1,314 @@
+{
+  "dashboard": {
+    "uid": "cigarpro-main",
+    "title": "CigarPro — 核心监控面板",
+    "description": "CigarPro 后端服务核心指标。覆盖 API 性能、业务交易、数据库、支付回调。",
+    "tags": ["cigarpro", "nestjs", "prometheus"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+        "type": "row",
+        "title": "📊 API 概览",
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 3 },
+        "type": "stat",
+        "title": "请求速率 (RPS)",
+        "fieldConfig": {
+          "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } }
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_http_requests_total[1m]))",
+            "legendFormat": "RPS",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 3 },
+        "type": "stat",
+        "title": "P95 延迟",
+        "fieldConfig": {
+          "defaults": { "unit": "ms", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "orange", "value": 500 }, { "color": "red", "value": 1000 }] } }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(cigarpro_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 3 },
+        "type": "stat",
+        "title": "5xx 错误率",
+        "fieldConfig": {
+          "defaults": { "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "orange", "value": 0.01 }, { "color": "red", "value": 0.05 }] }, "decimals": 4 }
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(cigarpro_http_requests_total[5m]))",
+            "legendFormat": "5xx%",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 11 },
+        "type": "timeseries",
+        "title": "QPS 按状态码",
+        "fieldConfig": { "defaults": { "unit": "reqps" } },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_http_requests_total[1m])) by (status_code)",
+            "legendFormat": "{{status_code}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 11 },
+        "type": "timeseries",
+        "title": "P50 / P95 / P99 延迟",
+        "fieldConfig": { "defaults": { "unit": "ms" } },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(cigarpro_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(cigarpro_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(cigarpro_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": { "h": 3, "w": 24, "x": 0, "y": 21 },
+        "type": "row",
+        "title": "💰 业务交易",
+        "collapsed": false
+      },
+      {
+        "id": 8,
+        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 24 },
+        "type": "stat",
+        "title": "订单创建 / min",
+        "fieldConfig": { "defaults": { "unit": "short" } },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_orders_created_total[1m])) * 60",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "gridPos": { "h": 8, "w": 6, "x": 6, "y": 24 },
+        "type": "stat",
+        "title": "支付成功 / min",
+        "fieldConfig": { "defaults": { "unit": "short" } },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_orders_paid_total[1m])) * 60",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": { "h": 8, "w": 6, "x": 12, "y": 24 },
+        "type": "stat",
+        "title": "充值完成 / min",
+        "fieldConfig": { "defaults": { "unit": "short" } },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_recharges_completed_total[1m])) * 60",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "gridPos": { "h": 8, "w": 6, "x": 18, "y": 24 },
+        "type": "stat",
+        "title": "退款 / min",
+        "fieldConfig": { "defaults": { "unit": "short" } },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_orders_refunded_total[1m])) * 60",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 32 },
+        "type": "timeseries",
+        "title": "订单创建 / 支付 / 取消 趋势",
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_orders_created_total[5m]))",
+            "legendFormat": "创建",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(cigarpro_orders_paid_total[5m]))",
+            "legendFormat": "支付",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(cigarpro_orders_cancelled_total[5m]))",
+            "legendFormat": "取消",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 32 },
+        "type": "timeseries",
+        "title": "支付按渠道分布",
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_orders_paid_total[5m])) by (channel)",
+            "legendFormat": "{{channel}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "gridPos": { "h": 3, "w": 24, "x": 0, "y": 42 },
+        "type": "row",
+        "title": "📡 支付回调健康",
+        "collapsed": false
+      },
+      {
+        "id": 15,
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 45 },
+        "type": "timeseries",
+        "title": "回调接收量（按渠道）",
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_payment_callbacks_received_total[5m])) by (channel)",
+            "legendFormat": "{{channel}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 45 },
+        "type": "timeseries",
+        "title": "回调验签失败",
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 1 }] }
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_payment_callback_verify_failed_total[5m])) by (channel)",
+            "legendFormat": "{{channel}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 45 },
+        "type": "timeseries",
+        "title": "回调重放检测",
+        "targets": [
+          {
+            "expr": "sum(rate(cigarpro_payment_callbacks_received_total{is_replay=\"true\"}[5m]))",
+            "legendFormat": "重放",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "gridPos": { "h": 3, "w": 24, "x": 0, "y": 53 },
+        "type": "row",
+        "title": "⚙️ Node.js 运行时",
+        "collapsed": false
+      },
+      {
+        "id": 19,
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 56 },
+        "type": "timeseries",
+        "title": "事件循环延迟",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "orange", "value": 50 }, { "color": "red", "value": 100 }] }
+          }
+        },
+        "targets": [
+          {
+            "expr": "cigarpro_nodejs_event_loop_lag_seconds * 1000",
+            "legendFormat": "Event Loop Lag",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 56 },
+        "type": "gauge",
+        "title": "堆内存使用",
+        "fieldConfig": {
+          "defaults": { "unit": "bytes" }
+        },
+        "targets": [
+          {
+            "expr": "nodejs_heap_size_used_bytes",
+            "refId": "A"
+          },
+          {
+            "expr": "nodejs_heap_size_total_bytes",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 56 },
+        "type": "stat",
+        "title": "进程 CPU 使用",
+        "fieldConfig": {
+          "defaults": { "unit": "percent" }
+        },
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[1m]) * 100",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": false
+}

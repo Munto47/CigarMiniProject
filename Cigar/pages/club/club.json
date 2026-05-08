@@ -3,5 +3,7 @@
     "navigation-bar": "/components/navigation-bar/navigation-bar",
     "member-level-badge": "/components/member-level-badge/member-level-badge"
   },
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#0D0D0D"
 }

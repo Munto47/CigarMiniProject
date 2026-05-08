@@ -23,7 +23,7 @@
   </scroll-view>
 
   <!-- 历史列表 -->
-  <scroll-view class="history-list" scroll-y>
+  <scroll-view class="history-list" scroll-y enhanced show-scrollbar="{{false}}">
     <view wx:for="{{groups}}" wx:key="date" class="history-group">
       <!-- 日期分组 -->
       <view class="group-header">
@@ -38,7 +38,7 @@
         wx:for-item="record"
         class="history-item"
         bindtap="viewDetail"
-        data-id="{{record.id}}"
+        data-cigar-id="{{record.cigarId}}"
       >
         <!-- 图片 -->
         <view class="h-item__img">
@@ -52,6 +52,7 @@
         <view class="h-item__info">
           <view class="h-item__header">
             <text class="h-item__name">{{record.name}}</text>
+            <text class="h-item__time" wx:if="{{record.time}}">{{record.time}}</text>
             <view class="rating-badge">
               <text>{{record.rating}}</text>
             </view>
@@ -72,10 +73,10 @@
 
         <!-- 操作 -->
         <view class="h-item__actions">
-          <view class="h-action-btn" catchtap="shareRecord" data-id="{{record.id}}">
+          <view class="h-action-btn" catchtap="shareRecord" data-cigar-id="{{record.cigarId}}">
             <text class="h-action-text">分享</text>
           </view>
-          <view class="h-action-btn h-action-btn--gold" catchtap="reorder" data-id="{{record.id}}">
+          <view class="h-action-btn h-action-btn--gold" catchtap="reorder" data-cigar-id="{{record.cigarId}}" data-name="{{record.name}}">
             <text class="h-action-text h-action-text--gold">再购</text>
           </view>
         </view>

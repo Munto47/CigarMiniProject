@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.nyc_output/
+.jest-cache/
+
+# Environment
+.env
+.env.*
+
+# Prisma
+/generated/prisma
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Temp
+tmp/
+temp/
+~$*
+
+# Archives
+*.tgz
+*.tar.gz

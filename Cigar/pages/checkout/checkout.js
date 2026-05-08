@@ -1,64 +1,164 @@
-const MOCK_ORDER = {
-  items: [
-    { id: 1, name: 'Cohiba Behike 52',          spec: '单支', price: 1280, qty: 1 },
-    { id: 2, name: 'Davidoff Winston Churchill', spec: '单支', price: 680,  qty: 2 }
-  ],
-  discount:      -200,
-  memberBalance: 3680
+const { getCart, getMemberProfile, createOrder, payOrder, submitReview } = require('../../utils/api')
+const { isLoggedIn } = require('../../utils/request')
+
+/** 生成简单 UUID（小程序环境） */
+function generateUUID() {
+  const s = () => (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1)
+  return `${s()}${s()}-${s()}-${s()}-${s()}-${s()}${s()}${s()}`
 }
 
 Page({
   data: {
-    order:     MOCK_ORDER,
-    subtotal:  0,
-    total:     0,
-    payMethod: 'balance',  // 'balance' | 'meituan'
-    paying:    false,
+    items: [],
+    subtotal: 0,
+    discount: 0,
+    total: 0,
+    memberBalance: 0,
+    payMethod: 'balance',
+    paying: false,
 
-    /* ── 当前用户会员等级 ── */
     memberLevel: {
-      rechargeLevel: 8,
-      consumeLevel: 7
+      rechargeLevel: 0,
+      consumeLevel: 0,
     },
 
-    /* ── 评价弹窗 ── */
     showRateModal: false,
-    rateScore:     0,
-    rateText:      ''
+    rateScore: 0,
+    rateText: '',
+    lastOrderId: null,
+    lastCigarId: null,
   },
 
-  onLoad() {
-    const subtotal = MOCK_ORDER.items.reduce((s, i) => s + i.price * i.qty, 0)
-    this.setData({ subtotal, total: subtotal + MOCK_ORDER.discount })
+  async onLoad() {
+    if (!isLoggedIn()) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      setTimeout(() => wx.navigateBack(), 1500)
+      return
+    }
+
+    // 生成或恢复幂等 key（与购物车绑定，防止重复下单）
+    const storedKey = wx.getStorageSync('checkout_idempotency_key')
+    this._idempotencyKey = storedKey || generateUUID()
+    if (!storedKey) {
+      wx.setStorageSync('checkout_idempotency_key', this._idempotencyKey)
+    }
+
+    try {
+      const [cart, profile] = await Promise.all([
+        getCart(),
+        getMemberProfile(),
+      ])
+
+      const items = (cart && cart.items) ? cart.items : []
+      const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0)
+
+      // 折扣计算（基于会员等级，简化逻辑）
+      let discount = 0
+      if (profile && profile.recharge && profile.recharge.level >= 6) {
+        discount = -Math.round(subtotal * 0.1 * 100) / 100 // 9 折
+      }
+
+      this.setData({
+        items,
+        subtotal,
+        discount,
+        total: Math.max(0, subtotal + discount),
+        memberBalance: profile ? profile.balance : 0,
+        memberLevel: profile ? {
+          rechargeLevel: profile.rechargeLevel || 0,
+          consumeLevel: profile.consumptionLevel || 0,
+        } : { rechargeLevel: 0, consumeLevel: 0 },
+      })
+
+      if (items.length === 0) {
+        wx.showToast({ title: '购物车为空', icon: 'none' })
+        setTimeout(() => wx.navigateBack(), 1000)
+      }
+    } catch {
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    }
   },
 
   selectPayMethod(e) {
     this.setData({ payMethod: e.currentTarget.dataset.method })
   },
 
-  pay() {
+  async pay() {
     if (this.data.paying) return
     this.setData({ paying: true })
 
-    if (this.data.payMethod === 'balance') {
-      if (this.data.total > this.data.order.memberBalance) {
-        wx.showToast({ title: '余额不足，请充值', icon: 'none' })
+    const { payMethod, total, memberBalance, items } = this.data
+
+    try {
+      // 1. 创建订单（使用持久化幂等 key，防止重复下单）
+      const orderResult = await createOrder(this._idempotencyKey, items)
+
+      const orderId = orderResult.orderId || orderResult.id
+      if (!orderId) {
+        throw new Error('订单创建失败')
+      }
+
+      // 如果是幂等命中，直接进入支付
+      if (orderResult.idempotent && orderResult.status === 'paid') {
+        wx.showToast({ title: '订单已支付', icon: 'success' })
         this.setData({ paying: false })
         return
       }
-      wx.showLoading({ title: '支付中...', mask: true })
-      setTimeout(() => {
+
+      // 2. 支付
+      if (payMethod === 'balance') {
+        if (total > memberBalance) {
+          this.setData({ paying: false })
+          wx.showModal({
+            title: '余额不足',
+            content: `当前余额 ¥${memberBalance.toFixed(2)}，还差 ¥${(total - memberBalance).toFixed(2)}，是否前往充值？`,
+            confirmText: '去充值',
+            cancelText: '取消',
+            success: ({ confirm }) => {
+              if (confirm) wx.switchTab({ url: '/pages/club/club' })
+            },
+          })
+          return
+        }
+
+        wx.showLoading({ title: '支付中...', mask: true })
+
+        const payResult = await payOrder(orderId, 'balance')
         wx.hideLoading()
         this.setData({ paying: false })
-        wx.showToast({ title: '支付成功', icon: 'success' })
-        /* 支付成功后延迟弹出评价 Modal */
-        setTimeout(() => {
-          this.setData({ showRateModal: true, rateScore: 0, rateText: '' })
-        }, 1200)
-      }, 1200)
-    } else {
-      wx.showToast({ title: '正在跳转美团收银...', icon: 'none' })
+
+        if (payResult.paid) {
+          wx.showToast({ title: '支付成功', icon: 'success' })
+          wx.removeStorageSync('checkout_idempotency_key')
+          // 清空购物车角标
+          getApp().updateCartBadge(0)
+          // 记录订单信息用于评价
+          const firstItem = items[0]
+          this.setData({
+            lastOrderId: orderId,
+            lastCigarId: firstItem ? firstItem.productId : null,
+          })
+          // 延迟弹出评价 Modal
+          setTimeout(() => {
+            this.setData({ showRateModal: true, rateScore: 0, rateText: '' })
+          }, 1200)
+        }
+      } else {
+        // 美团支付
+        const payResult = await payOrder(orderId, 'meituan')
+        this.setData({ paying: false })
+
+        if (payResult.redirectUrl) {
+          wx.showToast({ title: '正在跳转美团收银...', icon: 'none' })
+          // 实际环境需要跳转到美团
+        } else {
+          wx.showToast({ title: '美团支付暂不可用', icon: 'none' })
+        }
+      }
+    } catch (err) {
+      wx.hideLoading()
       this.setData({ paying: false })
+      // 余额不足等错误已在 request 层提示
     }
   },
 
@@ -77,16 +177,30 @@ Page({
     this.setData({ rateText: e.detail.value })
   },
 
-  submitRate() {
-    const { rateScore, rateText } = this.data
+  async submitRate() {
+    const { rateScore, rateText, lastCigarId, lastOrderId } = this.data
+
     if (rateScore === 0) {
       wx.showToast({ title: '请先为本次品鉴打分', icon: 'none' })
       return
     }
-    /* Mock：打印评价数据，实际对接后端时替换 */
-    console.log('[Mock] 提交评价:', { rateScore, rateText, orderId: Date.now() })
 
-    wx.showToast({ title: '感谢您的评价！', icon: 'success', duration: 1800 })
+    try {
+      await submitReview({
+        cigarId: Number(lastCigarId),
+        orderId: lastOrderId ? Number(lastOrderId) : undefined,
+        rating: rateScore,
+        content: rateText.trim() || '体验不错',
+      })
+      wx.showToast({ title: '感谢您的评价！', icon: 'success', duration: 1800 })
+    } catch (err) {
+      // 敏感词等错误由 request 层处理
+      if (err.message && err.message.includes('敏感词')) {
+        wx.showToast({ title: '内容含有敏感词，请修改后重试', icon: 'none', duration: 2500 })
+        return
+      }
+    }
+
     setTimeout(() => {
       this.setData({ showRateModal: false })
       wx.navigateBack()

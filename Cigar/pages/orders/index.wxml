@@ -1,0 +1,48 @@
+<navigation-bar
+  title="我的订单"
+  back="{{true}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<view class="orders-page">
+  <!-- 底部导航栏（持续置顶） -->
+  <custom-tab-bar />
+
+  <!-- 状态 Tab -->
+  <scroll-view class="status-tabs" scroll-x>
+    <view class="tab-item {{activeTab === index ? 'tab--active' : ''}}"
+      wx:for="{{statusTabs}}" wx:key="*this"
+      data-index="{{index}}" bindtap="switchTab">
+      {{item}}
+    </view>
+  </scroll-view>
+
+  <!-- 订单列表 -->
+  <scroll-view class="order-list" scroll-y>
+    <view wx:if="{{loading && orders.length === 0}}" class="empty">加载中...</view>
+    <block wx:elif="{{orders.length === 0}}">
+      <view class="empty">暂无订单</view>
+    </block>
+    <block wx:else>
+      <view class="order-card" wx:for="{{orders}}" wx:key="id" data-id="{{item.id}}" bindtap="viewDetail">
+        <view class="order-header">
+          <text class="order-no">{{item.orderNo}}</text>
+          <text class="order-status" style="color: {{item.statusColor}}">{{item.statusLabel}}</text>
+        </view>
+        <view class="order-items">
+          <text class="order-item" wx:for="{{item.items}}" wx:key="*this" wx:for-item="name">{{name}}</text>
+          <text class="order-more" wx:if="{{item.itemCount > 3}}">等 {{item.itemCount}} 件</text>
+        </view>
+        <view class="order-footer">
+          <text class="order-time">{{item.createdAt}}</text>
+          <text class="order-total">¥ {{item.total}}</text>
+        </view>
+        <view class="order-action" wx:if="{{item.status === 'pending'}}">
+          <text class="cancel-btn" catchtap="cancelOrder" data-id="{{item.id}}">取消订单</text>
+          <text class="pay-btn" catchtap="payOrder" data-id="{{item.id}}">立即支付</text>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

@@ -39,3 +39,31 @@ Desktop.ini
 
 # ===== Office 临时文件 =====
 ~$*
+
+# ===== 测试覆盖率 =====
+coverage/
+.nyc_output/
+
+# ===== 缓存 =====
+.cache/
+*.tsbuildinfo
+.jest-cache/
+.parcel-cache/
+.turbo/
+
+# ===== 构建产物 =====
+build/
+*.tgz
+*.tar.gz
+
+# ===== 临时目录 =====
+tmp/
+temp/
+
+# ===== Prisma 生成文件 =====
+/generated/prisma
+
+# ===== 微信小程序 =====
+project.config.json
+.miniprogram/
+.wechatide/

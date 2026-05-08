@@ -3,6 +3,30 @@
   background: var(--bg-base);
 }
 
+/* ── 未登录引导 ── */
+.login-tip-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: var(--space-xl);
+}
+.login-tip-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  width: 100%;
+}
+.login-tip-icon { font-size: 48rpx; color: var(--gold-primary); }
+.login-tip-title { font-size: 34rpx; color: var(--text-primary); font-weight: 600; }
+.login-tip-desc { font-size: 26rpx; color: var(--text-muted); }
+.login-tip-btn { margin-top: var(--space-sm); padding: var(--space-sm) var(--space-xl); }
+
 /* ── 会员卡 ── */
 .member-card {
   margin: var(--space-md) var(--space-lg);
@@ -361,4 +385,167 @@
 
 .tab-safe-bottom {
   height: calc(112rpx + env(safe-area-inset-bottom));
+}
+
+/* ══ 充值弹窗 ══ */
+.topup-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: flex-end;
+  z-index: 999;
+  animation: maskIn 250ms ease both;
+}
+
+@keyframes maskIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.topup-panel {
+  width: 100%;
+  background: linear-gradient(180deg, #1A1208 0%, #100C06 100%);
+  border-top: 1rpx solid rgba(201, 168, 76, 0.35);
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 0 var(--space-lg) calc(var(--space-xl) + env(safe-area-inset-bottom));
+  animation: panelUp 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes panelUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.topup-handle {
+  width: 64rpx;
+  height: 6rpx;
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 3rpx;
+  margin: 20rpx auto 32rpx;
+}
+
+.topup-header {
+  margin-bottom: var(--space-lg);
+}
+
+.topup-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-gold-light);
+  letter-spacing: 0.05em;
+  margin-bottom: 8rpx;
+}
+
+.topup-subtitle {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-muted);
+}
+
+/* 档位网格：3列 */
+.topup-tiers {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 20rpx;
+  margin-bottom: var(--space-lg);
+}
+
+.tier-card {
+  width: calc(33.33% - 14rpx);
+  aspect-ratio: 1;
+  background: var(--bg-elevated);
+  border: 1rpx solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+
+.tier-card--active {
+  background: linear-gradient(145deg, rgba(38, 26, 10, 1) 0%, rgba(28, 18, 6, 1) 100%);
+  border-color: var(--color-gold);
+  box-shadow:
+    0 0 0 1rpx rgba(201, 168, 76, 0.3),
+    0 8rpx 32rpx rgba(201, 168, 76, 0.12),
+    inset 0 1rpx 0 rgba(232, 201, 122, 0.08);
+}
+
+.tier-bonus-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
+  border-radius: 0 var(--radius-md) 0 var(--radius-md);
+  padding: 4rpx 12rpx;
+}
+
+.tier-bonus-badge text {
+  font-size: 18rpx;
+  font-weight: 700;
+  color: #0D0D0D;
+  letter-spacing: 0.02em;
+}
+
+.tier-amount {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--color-gold-light);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.tier-card--active .tier-amount {
+  color: var(--color-gold);
+  text-shadow: 0 0 20rpx rgba(201, 168, 76, 0.4);
+}
+
+.tier-label {
+  font-size: 20rpx;
+  color: var(--text-disabled);
+}
+
+/* 选中说明 */
+.topup-selected-info {
+  background: rgba(201, 168, 76, 0.06);
+  border: 1rpx solid rgba(201, 168, 76, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 18rpx var(--space-md);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.topup-info-text {
+  font-size: 26rpx;
+  color: var(--color-gold);
+  letter-spacing: 0.04em;
+}
+
+/* 按钮区 */
+.topup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.topup-confirm {
+  width: 100%;
+  padding: 28rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.topup-cancel {
+  width: 100%;
+  padding: 24rpx;
+  font-size: 28rpx;
 }

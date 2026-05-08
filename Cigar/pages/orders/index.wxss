@@ -1,0 +1,28 @@
+.orders-page { background: #0D0D0D; height: 100vh; display: flex; flex-direction: column; }
+
+.status-tabs { white-space: nowrap; padding: 12px 16px; display: flex; gap: 8px; flex-shrink: 0; }
+.tab-item { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px;
+  color: #6B6560; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.08); }
+.tab--active { color: #C9A84C; background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.25); }
+
+.order-list { flex: 1; padding: 0 16px; padding-bottom: calc(56px + env(safe-area-inset-bottom)); overflow: hidden; }
+
+.order-card { background: #161616; border: 1px solid rgba(201,168,76,0.08); border-radius: 12px;
+  padding: 16px; margin-bottom: 12px; }
+.order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.order-no { font-size: 13px; color: #9E9484; }
+.order-status { font-size: 13px; font-weight: 500; }
+.order-items { margin-bottom: 10px; }
+.order-item { font-size: 14px; color: #F5F0E8; display: block; line-height: 1.6; }
+.order-more { font-size: 12px; color: #6B6560; }
+.order-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 10px;
+  border-top: 1px solid rgba(201,168,76,0.06); }
+.order-time { font-size: 12px; color: #6B6560; }
+.order-total { font-size: 16px; color: #C9A84C; font-weight: 600; }
+.order-action { margin-top: 10px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.cancel-btn { display: inline-block; padding: 6px 16px; border-radius: 16px; font-size: 13px;
+  color: #6B6560; border: 1px solid rgba(107,101,96,0.4); }
+.pay-btn { display: inline-block; padding: 6px 20px; border-radius: 16px; font-size: 13px;
+  color: #1A1208; background: linear-gradient(135deg, #E8C97A, #C9A84C); font-weight: 500; }
+
+.empty { text-align: center; color: #4A4540; font-size: 14px; padding: 60px 0; }

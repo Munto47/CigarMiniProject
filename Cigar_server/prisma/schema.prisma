@@ -1,0 +1,795 @@
+// CigarPro Prisma Schema v2.0
+// 对应 docs/backend/02_数据库完整DDL.sql
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// 1. 用户域
+// ============================================================
+
+model User {
+  id             BigInt    @id @default(autoincrement())
+  openid         String    @unique @db.VarChar(64)
+  unionid        String?   @db.VarChar(64)
+  nickname       String    @default("微信用户") @db.VarChar(64)
+  avatarUrl      String?   @map("avatar_url")
+  phoneEncrypted Bytes?    @map("phone_encrypted")
+  phoneMask      String?   @map("phone_mask") @db.VarChar(20)
+  birthday       DateTime? @db.Date
+  gender         Int       @default(0) @db.SmallInt
+  status         Int       @default(1) @db.SmallInt
+  lastLoginAt    DateTime? @map("last_login_at") @db.Timestamptz()
+  lastLoginIp    String?   @map("last_login_ip")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  memberProfile       MemberProfile?
+  cartItems           CartItem[]
+  orders              Order[]
+  balanceTransactions BalanceTransaction[]
+  pointTransactions   PointTransaction[]
+  levelChangeLogs     LevelChangeLog[]
+  rechargeOrders      RechargeOrder[]
+  reviews             Review[]
+  posters             Poster[]
+  tastingRecords      TastingRecord[]
+  recommendLogs       RecommendLog[]
+
+  @@index([unionid], map: "idx_users_unionid")
+  @@index([phoneMask], map: "idx_users_phone_mask")
+  @@map("users")
+}
+
+model MemberProfile {
+  userId             BigInt   @id @map("user_id")
+  balanceCents       BigInt   @default(0) @map("balance_cents")
+  rechargeLevel      Int      @default(1) @map("recharge_level") @db.SmallInt
+  consumptionLevel   Int      @default(1) @map("consumption_level") @db.SmallInt
+  rechargePoints     BigInt   @default(0) @map("recharge_points")
+  consumptionPoints  BigInt   @default(0) @map("consumption_points")
+  totalRechargeCents BigInt   @default(0) @map("total_recharge_cents")
+  totalSpendCents    BigInt   @default(0) @map("total_spend_cents")
+  orderCount         Int      @default(0) @map("order_count")
+  loginCount         Int      @default(0) @map("login_count")
+  version            Int      @default(0)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([rechargeLevel], map: "idx_mp_recharge_level")
+  @@index([consumptionLevel], map: "idx_mp_consumption_level")
+  @@map("member_profiles")
+}
+
+// ============================================================
+// 2. 管理员域 (RBAC)
+// ============================================================
+
+model Admin {
+  id                 BigInt    @id @default(autoincrement())
+  username           String    @unique @db.VarChar(64)
+  name               String    @db.VarChar(64)
+  passwordHash       String    @map("password_hash") @db.VarChar(255)
+  roleCode           String    @map("role_code") @db.VarChar(32)
+  status             Int       @default(1) @db.SmallInt
+  mustChangePassword Boolean   @default(true) @map("must_change_password")
+  passwordChangedAt  DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz()
+  lockedUntil        DateTime? @map("locked_until") @db.Timestamptz()
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz()
+  lastLoginIp        String?   @map("last_login_ip")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("admins")
+}
+
+model Role {
+  code        String   @id @db.VarChar(32)
+  name        String   @db.VarChar(64)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  code      String   @id @db.VarChar(64)
+  name      String   @db.VarChar(128)
+  module    String   @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleCode       String @map("role_code") @db.VarChar(32)
+  permissionCode String @map("permission_code") @db.VarChar(64)
+
+  role       Role       @relation(fields: [roleCode], references: [code], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionCode], references: [code], onDelete: Cascade)
+
+  @@id([roleCode, permissionCode])
+  @@map("role_permissions")
+}
+
+model AdminLoginLog {
+  id        BigInt   @id @default(autoincrement())
+  adminId   BigInt?  @map("admin_id")
+  username  String   @db.VarChar(64)
+  result    String   @db.VarChar(16)
+  reason    String?  @db.VarChar(64)
+  ip        String?
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([username, createdAt(sort: Desc)], map: "idx_all_username_created")
+  @@map("admin_login_logs")
+}
+
+model OperationLog {
+  id          BigInt   @id @default(autoincrement())
+  adminId     BigInt   @map("admin_id")
+  adminName   String   @map("admin_name") @db.VarChar(64)
+  module      String   @db.VarChar(32)
+  action      String   @db.VarChar(64)
+  targetType  String?  @map("target_type") @db.VarChar(32)
+  targetId    String?  @map("target_id") @db.VarChar(64)
+  description String?
+  beforeData  Json?    @map("before_data")
+  afterData   Json?    @map("after_data")
+  level       String   @default("info") @db.VarChar(16)
+  ip          String?
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([adminId, createdAt(sort: Desc)], map: "idx_oplogs_admin_created")
+  @@index([module, action, createdAt(sort: Desc)], map: "idx_oplogs_module_action")
+  @@index([createdAt], map: "idx_oplogs_created")
+  @@map("operation_logs")
+}
+
+// ============================================================
+// 3. 商品域
+// ============================================================
+
+model Category {
+  type      String   @db.VarChar(16)
+  code      String   @db.VarChar(64)
+  name      String   @db.VarChar(64)
+  sortOrder Int      @default(0) @map("sort_order")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  cigars Cigar[]
+  drinks Drink[]
+
+  @@id([type, code])
+  @@map("categories")
+}
+
+model Cigar {
+  id               BigInt    @id @default(autoincrement())
+  name             String    @db.VarChar(128)
+  brand            String    @db.VarChar(64)
+  model            String?   @db.VarChar(64)
+  spec             String    @default("单支") @db.VarChar(32)
+  categoryType     String    @default("cigar") @map("category_type") @db.VarChar(16)
+  categoryCode     String    @map("category_code") @db.VarChar(64)
+  origin           String?   @db.VarChar(64)
+  year             String?   @db.VarChar(16)
+  wrapper          String?   @db.VarChar(64)
+  strength         String?   @db.VarChar(32)
+  duration         String?   @db.VarChar(32)
+  priceCents       BigInt    @map("price_cents")
+  memberPriceCents BigInt    @map("member_price_cents")
+  stock            Int       @default(0)
+  stockLocked      Int       @default(0) @map("stock_locked")
+  ratingAvg        Decimal   @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount      Int       @default(0) @map("rating_count")
+  flavorStart      String?   @map("flavor_start")
+  flavorMid        String?   @map("flavor_mid")
+  flavorEnd        String?   @map("flavor_end")
+  flavorScores     Json      @default("{}") @map("flavor_scores")
+  scenes           String[]
+  segments         Json      @default("[]")
+  aiFlavorAnalysis Json?     @map("ai_flavor_analysis")
+  heroImageUrl     String?   @map("hero_image_url")
+  thumbUrl         String?   @map("thumb_url")
+  status           String    @default("active") @db.VarChar(16)
+  isNew            Boolean   @default(false) @map("is_new")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz()
+
+  category       Category        @relation(fields: [categoryType, categoryCode], references: [type, code])
+  cigarTags      CigarTag[]
+  pairings       Pairing[]
+  reviews        Review[]
+  posters        Poster[]
+  tastingRecords TastingRecord[]
+
+  @@index([status, categoryCode], map: "idx_cigars_status_cat")
+  @@index([brand], map: "idx_cigars_brand")
+  @@map("cigars")
+}
+
+model Drink {
+  id               BigInt    @id @default(autoincrement())
+  name             String    @db.VarChar(128)
+  categoryType     String    @default("drink") @map("category_type") @db.VarChar(16)
+  categoryCode     String    @map("category_code") @db.VarChar(64)
+  priceCents       BigInt    @map("price_cents")
+  memberPriceCents BigInt    @map("member_price_cents")
+  stock            Int       @default(0)
+  stockLocked      Int       @default(0) @map("stock_locked")
+  description      String?
+  thumbUrl         String?   @map("thumb_url")
+  status           String    @default("active") @db.VarChar(16)
+  isNew            Boolean   @default(false) @map("is_new")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz()
+
+  category Category  @relation(fields: [categoryType, categoryCode], references: [type, code])
+  pairings Pairing[]
+
+  @@index([status, categoryCode], map: "idx_drinks_status_cat")
+  @@map("drinks")
+}
+
+model FlavorTag {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @unique @db.VarChar(32)
+  category  String   @db.VarChar(32)
+  aiWeight  Decimal  @default(0.50) @map("ai_weight") @db.Decimal(4, 2)
+  scoreMap  Json     @default("{}") @map("score_map")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  cigarTags CigarTag[]
+
+  @@map("flavor_tags")
+}
+
+model CigarTag {
+  cigarId BigInt @map("cigar_id")
+  tagId   BigInt @map("tag_id")
+
+  cigar Cigar     @relation(fields: [cigarId], references: [id], onDelete: Cascade)
+  tag   FlavorTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([cigarId, tagId])
+  @@index([tagId], map: "idx_cigar_tags_tag")
+  @@map("cigar_tags")
+}
+
+model Pairing {
+  id          BigInt   @id @default(autoincrement())
+  cigarId     BigInt   @map("cigar_id")
+  drinkId     BigInt   @map("drink_id")
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  cigar Cigar @relation(fields: [cigarId], references: [id], onDelete: Cascade)
+  drink Drink @relation(fields: [drinkId], references: [id])
+
+  @@unique([cigarId, drinkId], map: "uniq_pair")
+  @@map("pairings")
+}
+
+model ReferenceCigar {
+  id           BigInt   @id @default(autoincrement())
+  name         String   @db.VarChar(128)
+  brand        String   @db.VarChar(64)
+  categoryCode String   @map("category_code") @db.VarChar(64)
+  strength     String?  @db.VarChar(32)
+  flavorStart  String?  @map("flavor_start")
+  flavorMid    String?  @map("flavor_mid")
+  flavorEnd    String?  @map("flavor_end")
+  remark       String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("reference_cigars")
+}
+
+// ============================================================
+// 4. 购物车
+// ============================================================
+
+model CartItem {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  productType String   @map("product_type") @db.VarChar(8)
+  productId   BigInt   @map("product_id")
+  spec        String   @default("单支") @db.VarChar(32)
+  qty         Int
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productType, productId, spec], map: "uniq_cart")
+  @@index([userId], map: "idx_cart_user")
+  @@map("cart_items")
+}
+
+// ============================================================
+// 5. 订单 / 支付 / 退款
+// ============================================================
+
+model Order {
+  id                  BigInt    @id @default(autoincrement())
+  orderNo             String    @unique @map("order_no") @db.VarChar(32)
+  idempotencyKey      String    @map("idempotency_key") @db.VarChar(64)
+  userId              BigInt    @map("user_id")
+  userNameSnapshot    String    @map("user_name_snapshot") @db.VarChar(64)
+  totalCents          BigInt    @map("total_cents")
+  memberDiscountCents BigInt    @default(0) @map("member_discount_cents")
+  actualPayCents      BigInt    @map("actual_pay_cents")
+  refundedAmountCents BigInt    @default(0) @map("refunded_amount_cents")
+  payMethod           String?   @map("pay_method") @db.VarChar(16)
+  status              String    @db.VarChar(16)
+  pickupTime          String?   @default("到店自提") @map("pickup_time") @db.VarChar(64)
+  remark              String?
+  paidAt              DateTime? @map("paid_at") @db.Timestamptz()
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz()
+  cancelledAt         DateTime? @map("cancelled_at") @db.Timestamptz()
+  cancelReason        String?   @map("cancel_reason") @db.VarChar(255)
+  evaluated           Boolean   @default(false)
+  meituanOrderNo      String?   @map("meituan_order_no") @db.VarChar(64)
+  meituanSyncStatus   String    @default("not_required") @map("meituan_sync_status") @db.VarChar(16)
+  meituanRetryCount   Int       @default(0) @map("meituan_retry_count")
+  meituanNextRetryAt  DateTime? @map("meituan_next_retry_at") @db.Timestamptz()
+  meituanSyncAt       DateTime? @map("meituan_sync_at") @db.Timestamptz()
+  expireAt            DateTime  @map("expire_at") @db.Timestamptz()
+  version             Int       @default(0)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user           User            @relation(fields: [userId], references: [id])
+  orderItems     OrderItem[]
+  paymentRecords PaymentRecord[]
+  refundRecords  RefundRecord[]
+  reviews        Review[]
+
+  @@unique([userId, idempotencyKey], map: "uniq_orders_idem")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_orders_user_created")
+  @@index([status], map: "idx_orders_status")
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  BigInt   @id @default(autoincrement())
+  orderId             BigInt   @map("order_id")
+  productType         String   @map("product_type") @db.VarChar(8)
+  productId           BigInt   @map("product_id")
+  nameSnapshot        String   @map("name_snapshot") @db.VarChar(128)
+  specSnapshot        String   @map("spec_snapshot") @db.VarChar(32)
+  priceCentsSnapshot  BigInt   @map("price_cents_snapshot")
+  memberPriceSnapshot BigInt   @map("member_price_snapshot")
+  qty                 Int
+  actualAmountCents   BigInt   @map("actual_amount_cents")
+  thumbUrlSnapshot    String?  @map("thumb_url_snapshot")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId], map: "idx_oi_order")
+  @@map("order_items")
+}
+
+model PaymentRecord {
+  id             BigInt    @id @default(autoincrement())
+  paymentNo      String    @unique @map("payment_no") @db.VarChar(40)
+  orderId        BigInt    @map("order_id")
+  userId         BigInt    @map("user_id")
+  amountCents    BigInt    @map("amount_cents")
+  channel        String    @db.VarChar(16)
+  channelTradeNo String?   @map("channel_trade_no") @db.VarChar(64)
+  status         String    @db.VarChar(16)
+  failedReason   String?   @map("failed_reason") @db.VarChar(255)
+  paidAt         DateTime? @map("paid_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([channel, channelTradeNo], map: "idx_pay_channel_trade")
+  @@map("payment_records")
+}
+
+model PaymentCallback {
+  id            BigInt    @id @default(autoincrement())
+  channel       String    @db.VarChar(16)
+  externalId    String    @map("external_id") @db.VarChar(64)
+  relatedType   String    @map("related_type") @db.VarChar(16)
+  relatedNo     String    @map("related_no") @db.VarChar(40)
+  rawPayload    Json      @map("raw_payload")
+  signature     String?
+  verified      Boolean   @default(false)
+  processed     Boolean   @default(false)
+  processResult String?   @map("process_result") @db.VarChar(255)
+  receivedCount Int       @default(1) @map("received_count")
+  receivedAt    DateTime  @default(now()) @map("received_at") @db.Timestamptz()
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz()
+
+  @@unique([channel, externalId], map: "uniq_cb")
+  @@index([relatedType, relatedNo], map: "idx_pcb_related")
+  @@map("payment_callbacks")
+}
+
+model RefundRecord {
+  id              BigInt    @id @default(autoincrement())
+  refundNo        String    @unique @map("refund_no") @db.VarChar(40)
+  idempotencyKey  String?   @map("idempotency_key") @db.VarChar(64)
+  orderId         BigInt    @map("order_id")
+  userId          BigInt    @map("user_id")
+  amountCents     BigInt    @map("amount_cents")
+  channel         String    @db.VarChar(16)
+  status          String    @db.VarChar(16)
+  reason          String?   @db.VarChar(255)
+  operatorAdminId BigInt?   @map("operator_admin_id")
+  channelTradeNo  String?   @map("channel_trade_no") @db.VarChar(64)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId], map: "idx_refund_order")
+  @@map("refund_records")
+}
+
+// ============================================================
+// 6. 充值与资产流水
+// ============================================================
+
+model RechargeTier {
+  id          BigInt   @id @default(autoincrement())
+  amountCents BigInt   @map("amount_cents")
+  bonusCents  BigInt   @default(0) @map("bonus_cents")
+  displayName String?  @map("display_name") @db.VarChar(64)
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  rechargeOrders RechargeOrder[]
+
+  @@map("recharge_tiers")
+}
+
+model RechargeOrder {
+  id             BigInt    @id @default(autoincrement())
+  rechargeNo     String    @unique @map("recharge_no") @db.VarChar(40)
+  idempotencyKey String?   @map("idempotency_key") @db.VarChar(64)
+  userId         BigInt    @map("user_id")
+  tierId         BigInt?   @map("tier_id")
+  amountCents    BigInt    @map("amount_cents")
+  bonusCents     BigInt    @default(0) @map("bonus_cents")
+  totalCents     BigInt    @map("total_cents")
+  status         String    @db.VarChar(16)
+  channel        String    @default("wechat") @db.VarChar(16)
+  channelTradeNo String?   @map("channel_trade_no") @db.VarChar(64)
+  paidAt         DateTime? @map("paid_at") @db.Timestamptz()
+  expireAt       DateTime  @map("expire_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User          @relation(fields: [userId], references: [id])
+  tier RechargeTier? @relation(fields: [tierId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_recharge_user_created")
+  @@map("recharge_orders")
+}
+
+model BalanceTransaction {
+  id                BigInt   @id @default(autoincrement())
+  userId            BigInt   @map("user_id")
+  type              String   @db.VarChar(16)
+  direction         Int      @db.SmallInt
+  amountCents       BigInt   @map("amount_cents")
+  balanceAfterCents BigInt   @map("balance_after_cents")
+  relatedType       String   @map("related_type") @db.VarChar(32)
+  relatedId         BigInt?  @map("related_id")
+  relatedNo         String   @map("related_no") @db.VarChar(40)
+  description       String?  @db.VarChar(255)
+  operatorAdminId   BigInt?  @map("operator_admin_id")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, relatedType, relatedNo, type], map: "uniq_bt_event")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_bt_user_created")
+  @@index([relatedType, relatedId], map: "idx_bt_related")
+  @@map("balance_transactions")
+}
+
+model PointTransaction {
+  id              BigInt   @id @default(autoincrement())
+  userId          BigInt   @map("user_id")
+  levelType       String   @map("level_type") @db.VarChar(16)
+  type            String   @db.VarChar(24)
+  direction       Int      @db.SmallInt
+  points          BigInt
+  pointsAfter     BigInt   @map("points_after")
+  relatedType     String   @map("related_type") @db.VarChar(32)
+  relatedId       BigInt?  @map("related_id")
+  relatedNo       String   @map("related_no") @db.VarChar(40)
+  description     String?  @db.VarChar(255)
+  operatorAdminId BigInt?  @map("operator_admin_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, levelType, relatedType, relatedNo, type], map: "uniq_pt_event")
+  @@index([userId, levelType, createdAt(sort: Desc)], map: "idx_pt_user_lt_created")
+  @@map("point_transactions")
+}
+
+model LevelChangeLog {
+  id              BigInt   @id @default(autoincrement())
+  userId          BigInt   @map("user_id")
+  levelType       String   @map("level_type") @db.VarChar(16)
+  levelBefore     Int      @map("level_before") @db.SmallInt
+  levelAfter      Int      @map("level_after") @db.SmallInt
+  triggerType     String   @map("trigger_type") @db.VarChar(32)
+  relatedNo       String?  @map("related_no") @db.VarChar(40)
+  remark          String?  @db.VarChar(255)
+  operatorAdminId BigInt?  @map("operator_admin_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_lcl_user_created")
+  @@map("level_change_logs")
+}
+
+model LevelConfig {
+  id        BigInt   @id @default(autoincrement())
+  levelType String   @map("level_type") @db.VarChar(16)
+  level     Int      @db.SmallInt
+  name      String   @db.VarChar(64)
+  minPoints BigInt   @map("min_points")
+  maxPoints BigInt?  @map("max_points")
+  icon      String   @db.VarChar(32)
+  enabled   Boolean  @default(true)
+  updatedBy BigInt?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([levelType, level], map: "uniq_lc")
+  @@map("level_configs")
+}
+
+model LevelRecalcJob {
+  id            BigInt    @id @default(autoincrement())
+  triggeredBy   BigInt?   @map("triggered_by")
+  status        String    @db.VarChar(16)
+  totalUsers    Int?      @map("total_users")
+  affectedUsers Int?      @map("affected_users")
+  detail        Json?
+  startedAt     DateTime? @map("started_at") @db.Timestamptz()
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("level_recalc_jobs")
+}
+
+// ============================================================
+// 7. 评价 / 海报 / 品鉴
+// ============================================================
+
+model Review {
+  id                   BigInt    @id @default(autoincrement())
+  userId               BigInt    @map("user_id")
+  cigarId              BigInt    @map("cigar_id")
+  orderId              BigInt?   @map("order_id")
+  rating               Int       @db.SmallInt
+  content              String
+  status               String    @default("pending") @db.VarChar(16)
+  rechargeLevelSnap    Int       @map("recharge_level_snap") @db.SmallInt
+  consumptionLevelSnap Int       @map("consumption_level_snap") @db.SmallInt
+  reviewedByAdminId    BigInt?   @map("reviewed_by_admin_id")
+  reviewedAt           DateTime? @map("reviewed_at") @db.Timestamptz()
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz()
+
+  user  User   @relation(fields: [userId], references: [id])
+  cigar Cigar  @relation(fields: [cigarId], references: [id])
+  order Order? @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, cigarId], map: "uniq_review_per_user_cigar")
+  @@index([cigarId, status, createdAt(sort: Desc)], map: "idx_reviews_cigar_status")
+  @@map("reviews")
+}
+
+model SensitiveWord {
+  id        BigInt   @id @default(autoincrement())
+  word      String   @unique @db.VarChar(64)
+  enabled   Boolean  @default(true)
+  createdBy BigInt?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("sensitive_words")
+}
+
+model Poster {
+  id               BigInt   @id @default(autoincrement())
+  userId           BigInt   @map("user_id")
+  cigarId          BigInt?  @map("cigar_id")
+  voiceText        String?  @map("voice_text")
+  flavorTags       String[] @map("flavor_tags")
+  flavorScores     Json?    @map("flavor_scores")
+  posterImageUrl   String?  @map("poster_image_url")
+  templateSnapshot Json?    @map("template_snapshot")
+  status           String   @default("generated") @db.VarChar(16)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user  User   @relation(fields: [userId], references: [id])
+  cigar Cigar? @relation(fields: [cigarId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_posters_user")
+  @@map("posters")
+}
+
+model PosterTemplate {
+  id          Int      @id @default(1) @db.SmallInt
+  logoUrl     String?  @map("logo_url")
+  bgColor     String   @default("#0D0D0D") @map("bg_color") @db.VarChar(16)
+  accentColor String   @default("#C9A84C") @map("accent_color") @db.VarChar(16)
+  fontStyle   String   @default("serif") @map("font_style") @db.VarChar(32)
+  clubName    String?  @map("club_name") @db.VarChar(64)
+  tagline     String?  @db.VarChar(128)
+  updatedBy   BigInt?  @map("updated_by")
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+
+  @@map("poster_templates")
+}
+
+model TastingRecord {
+  id           BigInt   @id @default(autoincrement())
+  userId       BigInt   @map("user_id")
+  cigarId      BigInt?  @map("cigar_id")
+  flavorTags   String[] @map("flavor_tags")
+  flavorScores Json     @default("{}") @map("flavor_scores")
+  source       String   @db.VarChar(16)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user  User   @relation(fields: [userId], references: [id])
+  cigar Cigar? @relation(fields: [cigarId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_tasting_user")
+  @@map("tasting_records")
+}
+
+// ============================================================
+// 8. AI 推荐
+// ============================================================
+
+model RecommendQuestion {
+  id        BigInt   @id @default(autoincrement())
+  position  Int
+  title     String   @db.VarChar(128)
+  multi     Boolean  @default(false)
+  options   Json
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("recommend_questions")
+}
+
+model RecommendLog {
+  id           BigInt   @id @default(autoincrement())
+  userId       BigInt?  @map("user_id")
+  answers      Json
+  resultCigars Json     @map("result_cigars")
+  costMs       Int?     @map("cost_ms")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_rl_user_created")
+  @@map("recommend_logs")
+}
+
+// ============================================================
+// 9. 运营
+// ============================================================
+
+model Banner {
+  id         BigInt    @id @default(autoincrement())
+  title      String?   @db.VarChar(128)
+  imageUrl   String    @map("image_url")
+  linkType   String?   @map("link_type") @db.VarChar(16)
+  linkTarget String?   @map("link_target") @db.VarChar(255)
+  position   String    @default("club") @db.VarChar(32)
+  sortOrder  Int       @default(0) @map("sort_order")
+  enabled    Boolean   @default(true)
+  startAt    DateTime? @map("start_at") @db.Timestamptz()
+  endAt      DateTime? @map("end_at") @db.Timestamptz()
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("banners")
+}
+
+model Activity {
+  id          BigInt    @id @default(autoincrement())
+  title       String    @db.VarChar(128)
+  coverUrl    String?   @map("cover_url")
+  description String?
+  startAt     DateTime? @map("start_at") @db.Timestamptz()
+  endAt       DateTime? @map("end_at") @db.Timestamptz()
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("activities")
+}
+
+// ============================================================
+// 10. 系统
+// ============================================================
+
+model SystemConfig {
+  configKey   String   @id @map("config_key") @db.VarChar(64)
+  configValue Json     @map("config_value")
+  description String?
+  updatedBy   BigInt?  @map("updated_by")
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+
+  @@map("system_configs")
+}
+
+model MeituanSyncLog {
+  id           BigInt   @id @default(autoincrement())
+  orderId      BigInt?  @map("order_id")
+  requestType  String   @map("request_type") @db.VarChar(16)
+  requestBody  Json?    @map("request_body")
+  responseBody Json?    @map("response_body")
+  httpStatus   Int?     @map("http_status")
+  success      Boolean?
+  error        String?
+  triggeredBy  String?  @map("triggered_by") @db.VarChar(32)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([orderId, createdAt(sort: Desc)], map: "idx_msl_order_created")
+  @@map("meituan_sync_logs")
+}
+
+model ReconciliationReport {
+  id                  BigInt    @id @default(autoincrement())
+  channel             String    @db.VarChar(16)
+  date                DateTime  @db.Date
+  ourCount            Int       @default(0) @map("our_count")
+  ourAmountCents      BigInt    @default(0) @map("our_amount_cents")
+  platformCount       Int       @default(0) @map("platform_count")
+  platformAmountCents BigInt    @default(0) @map("platform_amount_cents")
+  diffCount           Int       @default(0) @map("diff_count")
+  diffAmountCents     BigInt    @default(0) @map("diff_amount_cents")
+  status              String    @db.VarChar(16)
+  diffDetail          Json?     @map("diff_detail")
+  resolvedByAdminId   BigInt?   @map("resolved_by_admin_id")
+  resolvedAt          DateTime? @map("resolved_at") @db.Timestamptz()
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([channel, date], map: "uniq_recon")
+  @@index([status, date(sort: Desc)], map: "idx_recon_status")
+  @@map("reconciliation_reports")
+}

@@ -88,6 +88,53 @@
   font-style: italic;
 }
 
+/* ══ 文字输入阶段 ══ */
+.input-stage {
+  padding: var(--space-lg);
+  animation: fadeIn 400ms ease both;
+}
+
+.input-wrap {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-subtle);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+  position: relative;
+}
+
+.flavor-input {
+  width: 100%;
+  min-height: 200rpx;
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.7;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.input-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: var(--text-disabled);
+  margin-top: 12rpx;
+}
+
+.analyze-btn {
+  font-size: 32rpx;
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+}
+
+.analyze-btn--loading {
+  opacity: 0.6;
+}
+
+.re-record-btn {
+  font-size: 28rpx;
+}
+
 /* ══ 预览阶段 ══ */
 .preview-stage {
   padding: var(--space-md) var(--space-md);

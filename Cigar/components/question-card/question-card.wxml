@@ -12,13 +12,13 @@
     <view
       wx:for="{{question.options}}"
       wx:key="index"
-      class="q-option {{answers.indexOf(index) !== -1 ? 'q-option--selected' : ''}} {{flashIdx === index ? 'q-option--flash' : ''}}"
+      class="q-option {{answersMap[index] ? 'q-option--selected' : ''}} {{flashIdx === index ? 'q-option--flash' : ''}}"
       bindtap="selectOption"
       data-index="{{index}}"
     >
       <!-- 选中标记 -->
-      <view class="q-option__check {{answers.indexOf(index) !== -1 ? 'q-option__check--active' : ''}}">
-        <view wx:if="{{answers.indexOf(index) !== -1}}" class="q-option__check-inner"></view>
+      <view class="q-option__check {{answersMap[index] ? 'q-option__check--active' : ''}}">
+        <view wx:if="{{answersMap[index]}}" class="q-option__check-inner"></view>
       </view>
       <text class="q-option__text">{{item}}</text>
     </view>

@@ -7,7 +7,9 @@
     "pages/club/club",
     "pages/cigar-detail/cigar-detail",
     "pages/poster/poster",
-    "pages/checkout/checkout"
+    "pages/checkout/checkout",
+    "pages/orders/index",
+    "pages/member-transactions/index"
   ],
   "tabBar": {
     "custom": true,

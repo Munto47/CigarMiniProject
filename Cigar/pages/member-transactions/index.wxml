@@ -1,0 +1,46 @@
+<navigation-bar
+  title="储值明细"
+  back="{{true}}"
+  color="#F5F0E8"
+  background="#0D0D0D"
+/>
+
+<view class="transactions-page">
+  <!-- 余额卡片 -->
+  <view class="balance-card">
+    <text class="balance-label">当前储值余额</text>
+    <text class="balance-amount">¥ {{balance}}</text>
+  </view>
+
+  <!-- 筛选 Tab -->
+  <scroll-view class="filter-tabs" scroll-x>
+    <view class="tab-item {{activeTab === index ? 'tab--active' : ''}}"
+      wx:for="{{filterTabs}}" wx:key="*this"
+      data-index="{{index}}" bindtap="switchTab">
+      {{item}}
+    </view>
+  </scroll-view>
+
+  <!-- 流水列表 -->
+  <scroll-view class="tx-list" scroll-y>
+    <view wx:if="{{loading && transactions.length === 0}}" class="empty">加载中...</view>
+    <block wx:elif="{{transactions.length === 0}}">
+      <view class="empty">暂无记录</view>
+    </block>
+    <block wx:else>
+      <view class="tx-card" wx:for="{{transactions}}" wx:key="id">
+        <view class="tx-left">
+          <text class="tx-type">{{item.typeLabel}}</text>
+          <text class="tx-time">{{item.createdAt}}</text>
+          <text class="tx-desc" wx:if="{{item.description}}">{{item.description}}</text>
+        </view>
+        <view class="tx-right">
+          <text class="tx-amount {{item.sign === '+' ? 'tx-plus' : item.sign === '-' ? 'tx-minus' : ''}}">
+            {{item.sign}}¥ {{item.amount}}
+          </text>
+          <text class="tx-balance">余额 ¥ {{item.balanceAfter}}</text>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

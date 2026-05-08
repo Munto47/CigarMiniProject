@@ -43,7 +43,6 @@ Component({
       // 显示隐藏导航，隐藏的时候navigation-bar的高度占位还在
       type: Boolean,
       value: true,
-      observer: '_showChange'
     },
     // back为true的时候，返回的页面深度
     delta: {
@@ -57,18 +56,30 @@ Component({
   data: {
     displayStyle: ''
   },
+  observers: {
+    'show': function(show) {
+      wx.nextTick(() => this._showChange(show))
+    }
+  },
   lifetimes: {
     attached() {
+      // 先同步读取设备信息（不涉及 setData，无副作用）
       const rect = wx.getMenuButtonBoundingClientRect()
       const platform = (wx.getDeviceInfo() || wx.getSystemInfoSync()).platform
       const isAndroid = platform === 'android'
       const isDevtools = platform === 'devtools'
-      const { windowWidth, safeArea: { top = 0, bottom = 0 } = {} } = wx.getWindowInfo() || wx.getSystemInfoSync()
-      this.setData({
-        ios: !isAndroid,
-        innerPaddingRight: `padding-right: ${windowWidth - rect.left}px`,
-        leftWidth: `width: ${windowWidth - rect.left}px`,
-        safeAreaTop: isDevtools || isAndroid ? `height: calc(var(--height) + ${top}px); padding-top: ${top}px` : ``
+      const { windowWidth, safeArea: { top = 0 } = {} } = wx.getWindowInfo() || wx.getSystemInfoSync()
+
+      // glass-easel 要求 setData 不能在 attached 同步调用，否则触发生命周期状态冲突
+      wx.nextTick(() => {
+        this.setData({
+          ios: !isAndroid,
+          innerPaddingRight: `padding-right: ${windowWidth - rect.left}px`,
+          leftWidth: `width: ${windowWidth - rect.left}px`,
+          safeAreaTop: isDevtools || isAndroid
+            ? `height: calc(var(--height) + ${top}px); padding-top: ${top}px`
+            : '',
+        })
       })
     },
   },

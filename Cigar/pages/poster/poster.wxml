@@ -38,6 +38,34 @@
     </view>
   </view>
 
+  <!-- ══ 文字输入阶段（DeepSeek 分析）══ -->
+  <view wx:if="{{stage === 'input'}}" class="input-stage">
+    <view class="record-stage__header">
+      <text class="record-eyebrow">DeepSeek AI · 风味分析</text>
+      <text class="record-title">描述您的品鉴感受</text>
+      <text class="record-desc">用文字描述品鉴体验，DeepSeek 将提取风味关键词并生成专属海报</text>
+    </view>
+
+    <view class="input-wrap">
+      <textarea
+        class="flavor-input"
+        placeholder="例如：入口时感受到明显的木质香，中段出现淡淡的咖啡和可可风味，尾段回甘绵长带有奶油余韵..."
+        value="{{inputText}}"
+        bindinput="onInputChange"
+        maxlength="200"
+        auto-focus="{{true}}"
+      />
+      <text class="input-count">{{inputText.length}}/200</text>
+    </view>
+
+    <view class="gold-btn analyze-btn {{analyzing ? 'analyze-btn--loading' : ''}}" bindtap="analyzeText">
+      <text>{{analyzing ? 'DeepSeek 分析中...' : 'AI 生成海报'}}</text>
+    </view>
+    <view class="ghost-btn re-record-btn" bindtap="reRecord">
+      <text>重新录制</text>
+    </view>
+  </view>
+
   <!-- ══ 海报预览阶段 ══ -->
   <view wx:if="{{stage === 'preview'}}" class="preview-stage">
     <view class="preview-header">
@@ -65,6 +93,9 @@
     <view class="preview-actions">
       <view class="gold-btn save-btn {{savingPoster ? 'save-btn--loading' : ''}}" bindtap="savePoster">
         <text>{{savingPoster ? '保存中...' : '保存海报到相册'}}</text>
+      </view>
+      <view wx:if="{{cigarId}}" class="ghost-btn {{tastingAdded ? 'ghost-btn--done' : ''}}" bindtap="addToTasting">
+        <text>{{tastingAdded ? '已加入品鉴记录' : '加入品鉴记录'}}</text>
       </view>
       <view class="ghost-btn" bindtap="reRecord">
         <text>重新录制</text>

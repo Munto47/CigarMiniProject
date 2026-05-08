@@ -6,7 +6,7 @@
   background="#0D0D0D"
 />
 
-<view class="ai-page">
+<scroll-view class="ai-page" scroll-y>
 
   <!-- ══ 阶段一：欢迎引导 ══ -->
   <view wx:if="{{stage === 'welcome'}}" class="welcome-screen">
@@ -38,7 +38,11 @@
     </text>
 
     <view class="welcome-actions">
-      <view class="gold-btn start-btn" bindtap="startQA">
+      <view wx:if="{{loadError}}" class="load-error-wrap">
+        <text class="load-error-text">推荐内容加载失败</text>
+        <view class="ghost-btn retry-btn" bindtap="retryLoad">重新加载</view>
+      </view>
+      <view wx:else class="gold-btn start-btn" bindtap="startQA">
         <text>开始探索</text>
       </view>
     </view>
@@ -132,6 +136,16 @@
           </view>
         </view>
 
+        <!-- 酒饮搭配 -->
+        <view wx:if="{{item.pairings && item.pairings.length > 0}}" class="pairing-row">
+          <text class="pairing-label">配饮推荐</text>
+          <view class="pairing-chips">
+            <view wx:for="{{item.pairings}}" wx:key="id" wx:for-item="drink" class="pairing-chip">
+              <text>{{drink.name}}</text>
+            </view>
+          </view>
+        </view>
+
         <!-- 价格与操作 -->
         <view class="cigar-card__actions">
           <text class="cigar-price">¥ {{item.price}}</text>
@@ -163,7 +177,14 @@
     </view>
   </view>
 
-</view>
+  <!-- 底部安全间距 -->
+  <view class="tab-safe-bottom"></view>
 
-<!-- 底部安全间距 -->
-<view class="tab-safe-bottom"></view>
+</scroll-view>
+
+<!-- 登录弹窗 -->
+<login-modal
+  visible="{{loginModalVisible}}"
+  bindclose="onLoginModalClose"
+  bindsuccess="onLoginSuccess"
+/>

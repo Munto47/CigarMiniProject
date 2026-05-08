@@ -3,44 +3,45 @@ import { Form, Input, Button, message, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import useStore from '../../store/useStore'
+import { adminLogin } from '../../api/auth'
 import logoIcon from '../../assets/pure_img.png'
-
-const MOCK_ACCOUNTS = [
-  { username: 'admin', password: 'admin123', name: '超级管理员', role: 'super' },
-  { username: 'product_mgr', password: 'product123', name: '李经理', role: 'product' },
-  { username: 'order_mgr', password: 'order123', name: '赵主管', role: 'order' },
-]
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
-  const [failCount, setFailCount] = useState(0)
   const navigate = useNavigate()
   const { login } = useStore()
 
   const onFinish = async (values) => {
-    if (failCount >= 5) {
-      message.error('账号已被锁定，请1小时后重试')
-      return
-    }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    const account = MOCK_ACCOUNTS.find(
-      a => a.username === values.username && a.password === values.password
-    )
-    if (account) {
-      login({ name: account.name, role: account.role, username: account.username })
-      message.success(`欢迎回来，${account.name}`)
+    try {
+      const res = await adminLogin(values.username, values.password)
+      const { accessToken, refreshToken, admin } = res.data.data
+      login(
+        { name: admin.name || admin.username, role: admin.roleCode, username: admin.username, id: admin.id },
+        accessToken,
+        refreshToken,
+      )
+      message.success(`欢迎回来，${admin.name || admin.username}`)
       navigate('/dashboard')
-    } else {
-      const newCount = failCount + 1
-      setFailCount(newCount)
-      if (newCount >= 5) {
-        message.error('密码错误次数过多，账号已锁定1小时')
+    } catch (err) {
+      const code = err.code || err.response?.data?.code
+      if (code === 1006) {
+        // 需要修改密码：先暂存 token，跳转修改密码页
+        const data = err.response?.data?.data
+        if (data?.accessToken) {
+          localStorage.setItem('temp_access_token', data.accessToken)
+        }
+        message.warning('请先修改初始密码')
+        // 一期：提示用户联系超管重置密码
+        message.info('初始密码已过期，请联系超级管理员重置密码')
+      } else if (code === 1004) {
+        message.error('账号已被禁用')
       } else {
-        message.error(`账号或密码错误，还可尝试 ${5 - newCount} 次`)
+        message.error(err.response?.data?.message || '账号或密码错误')
       }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -119,21 +120,10 @@ export default function LoginPage() {
             />
           </Form.Item>
 
-          {failCount >= 5 && (
-            <div style={{
-              background: 'rgba(201,76,76,0.1)', border: '1px solid rgba(201,76,76,0.3)',
-              borderRadius: 8, padding: '10px 14px', marginBottom: 16,
-              color: '#C94C4C', fontSize: 13,
-            }}>
-              账号已锁定，请1小时后重试
-            </div>
-          )}
-
           <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
             <Button
               type="primary" htmlType="submit" block
               loading={loading}
-              disabled={failCount >= 5}
               style={{
                 height: 44, borderRadius: 8, fontWeight: 600, fontSize: 15,
                 background: 'linear-gradient(135deg, #e5ac5d, #e69a4e, #b47a44)',

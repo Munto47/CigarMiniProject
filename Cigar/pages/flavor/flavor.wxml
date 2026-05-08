@@ -71,9 +71,7 @@
     <view class="gold-btn" bindtap="generatePoster">
       <text>生成风味海报</text>
     </view>
-    <view class="ghost-btn" bindtap="addToHistory">
-      <text>加入品鉴记录</text>
-    </view>
+
     <view wx:if="{{hasResult}}" class="reset-btn" bindtap="resetAll">
       <text class="reset-text">重置选择</text>
     </view>

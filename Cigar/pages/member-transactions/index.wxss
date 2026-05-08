@@ -1,0 +1,39 @@
+.transactions-page { background: #0D0D0D; min-height: 100vh; }
+
+.balance-card {
+  margin: 16px 16px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #1E150A 0%, #1A1208 100%);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.balance-label { font-size: 13px; color: #9E9484; }
+.balance-amount { font-size: 32px; color: #C9A84C; font-weight: 700; letter-spacing: 1px; }
+
+.filter-tabs { white-space: nowrap; padding: 12px 16px; display: flex; gap: 8px; }
+.tab-item { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px;
+  color: #6B6560; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.08); }
+.tab--active { color: #C9A84C; background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.25); }
+
+.tx-list { padding: 0 16px 120px; }
+
+.tx-card { display: flex; justify-content: space-between; align-items: center;
+  background: #161616; border: 1px solid rgba(201,168,76,0.08); border-radius: 12px;
+  padding: 16px; margin-bottom: 10px; }
+
+.tx-left { flex: 1; }
+.tx-type { font-size: 14px; color: #F5F0E8; font-weight: 500; }
+.tx-time { font-size: 12px; color: #6B6560; display: block; margin-top: 4px; }
+.tx-desc { font-size: 12px; color: #9E9484; display: block; margin-top: 2px; }
+
+.tx-right { text-align: right; flex-shrink: 0; margin-left: 12px; }
+.tx-amount { font-size: 16px; font-weight: 600; color: #F5F0E8; }
+.tx-plus { color: #4CAF7A; }
+.tx-minus { color: #C94C4C; }
+.tx-balance { font-size: 12px; color: #6B6560; display: block; margin-top: 2px; }
+
+.empty { text-align: center; color: #4A4540; font-size: 14px; padding: 60px 0; }
