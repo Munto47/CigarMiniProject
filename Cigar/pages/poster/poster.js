@@ -1,18 +1,8 @@
-const { getCigarDetail, createPoster, addTastingRecord, analyzeFlavorWithDeepSeek, matchCigarByFlavors } = require('../../utils/api')
+const { getCigarDetail, createPoster, addTastingRecord, analyzeVoice, matchCigarByFlavors } = require('../../utils/api')
 const { isLoggedIn } = require('../../utils/request')
 
-// Mock 开关：true = 跳过 DeepSeek 分析和录音，直接返回模拟文字和风味
-const MOCK_VOICE_ANALYSIS = true
-const MOCK_TRANSCRIPTS = [
-  '前段雪松清雅，中段出现咖啡与可可的甜润，尾段绵长回甘，平衡感极佳。',
-  '烟草底调厚重，皮革气息贯穿始终，辛香胡椒点缀其中，层次分明。',
-  '奶油丝滑为主调，木质底韵若隐若现，甜感持久，适合午后慢品。',
-]
-const MOCK_FLAVOR_SETS = [
-  ['雪松丝绸', '咖啡可可', '奶油丝滑'],
-  ['木质烟草', '皮革木桶', '辛香胡椒'],
-  ['奶油丝滑', '香草甜美', '果香甜润'],
-]
+// Mock 开关：false = 使用真实腾讯云 ASR 后端
+const MOCK_VOICE_ANALYSIS = false
 
 const CLUB_NAME = '山羊雪茄俱乐部'
 
@@ -84,9 +74,53 @@ Page({
     }
   },
 
-  onRecordStop() {
-    // 录音结束后进入文字输入阶段，由 DeepSeek 分析描述文字
-    this.setData({ stage: 'input' })
+  async onRecordStop(e) {
+    const { filePath } = e.detail
+    if (!filePath) {
+      wx.showToast({ title: '录音失败', icon: 'none' })
+      return
+    }
+
+    this.setData({ analyzing: true })
+    wx.showLoading({ title: 'AI 语音识别中...', mask: true })
+
+    try {
+      // 读取录音文件为 base64
+      const fs = wx.getFileSystemManager()
+      const base64 = fs.readFileSync(filePath, 'base64')
+
+      // 调用后端 ASR + 风味分析
+      const result = await analyzeVoice({
+        audioBase64: base64,
+        audioFormat: 'mp3',
+        cigarId: this.data.cigarId ? Number(this.data.cigarId) : undefined,
+      })
+
+      wx.hideLoading()
+      const flavors = (result.flavorTags && result.flavorTags.length > 0)
+        ? result.flavorTags
+        : ['木质烟草', '咖啡可可', '奶油丝滑']
+      const matched = await matchCigarByFlavors(flavors)
+
+      this.setData({
+        analyzing: false,
+        stage: 'preview',
+        transcript: result.voiceText || '语音识别结果',
+        flavors,
+        flavorScores: result.flavorScores || {},
+        cigarId: matched.id,
+        cigarName: matched.name,
+      })
+
+      setTimeout(() => this._drawPoster(), 200)
+      this._autoSavePoster()
+    } catch {
+      wx.hideLoading()
+      this.setData({ analyzing: false })
+      // 降级：进入文字输入模式
+      wx.showToast({ title: '语音识别失败，请手动输入', icon: 'none' })
+      this.setData({ stage: 'input' })
+    }
   },
 
   onInputChange(e) {
@@ -96,14 +130,24 @@ Page({
   async analyzeText() {
     const { inputText } = this.data
 
-    // ── Mock 分析（跳过 DeepSeek，返回预设识别结果）──
+    // Mock 模式：随机模拟分析
     if (MOCK_VOICE_ANALYSIS) {
       this.setData({ analyzing: true })
       wx.showLoading({ title: 'AI 识别中...', mask: true })
       await new Promise(r => setTimeout(r, 1200))
-      const idx = Math.floor(Math.random() * MOCK_TRANSCRIPTS.length)
-      const transcript = inputText.trim() || MOCK_TRANSCRIPTS[idx]
-      const flavors = MOCK_FLAVOR_SETS[idx]
+      const mockTranscripts = [
+        '前段雪松清雅，中段出现咖啡与可可的甜润，尾段绵长回甘，平衡感极佳。',
+        '烟草底调厚重，皮革气息贯穿始终，辛香胡椒点缀其中，层次分明。',
+        '奶油丝滑为主调，木质底韵若隐若现，甜感持久，适合午后慢品。',
+      ]
+      const mockFlavorSets = [
+        ['雪松丝绸', '咖啡可可', '奶油丝滑'],
+        ['木质烟草', '皮革木桶', '辛香胡椒'],
+        ['奶油丝滑', '香草甜美', '果香甜润'],
+      ]
+      const idx = Math.floor(Math.random() * mockTranscripts.length)
+      const transcript = inputText.trim() || mockTranscripts[idx]
+      const flavors = mockFlavorSets[idx]
       const matched = await matchCigarByFlavors(flavors)
       wx.hideLoading()
       this.setData({
@@ -125,17 +169,26 @@ Page({
     }
 
     this.setData({ analyzing: true })
-    wx.showLoading({ title: 'DeepSeek 分析中...', mask: true })
+    wx.showLoading({ title: 'AI 分析中...', mask: true })
 
     try {
-      const result = await analyzeFlavorWithDeepSeek(inputText)
-      const flavors = (result.flavors && result.flavors.length > 0) ? result.flavors : this.data.flavors
-      const matched = await matchCigarByFlavors(flavors)
+      // 调用后端文字模式（跳过 ASR，直接风味提取）
+      const result = await analyzeVoice({
+        text: inputText.trim(),
+        cigarId: this.data.cigarId ? Number(this.data.cigarId) : undefined,
+      })
+
       wx.hideLoading()
+      const flavors = (result.flavorTags && result.flavorTags.length > 0)
+        ? result.flavorTags
+        : this.data.flavors
+      const matched = await matchCigarByFlavors(flavors)
+
       this.setData({
         stage: 'preview',
-        transcript: result.transcript || inputText,
+        transcript: result.voiceText || inputText,
         flavors,
+        flavorScores: result.flavorScores || {},
         analyzing: false,
         cigarId: matched.id,
         cigarName: matched.name,

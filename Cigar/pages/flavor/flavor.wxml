@@ -17,7 +17,7 @@
   <!-- 两张入口卡片 -->
   <view class="entry-cards">
     <!-- 语音描述入口 -->
-    <view class="entry-card entry-card--voice" bindtap="generatePoster">
+    <view class="entry-card entry-card--voice" bindtap="goToVoiceAnalysis">
       <view class="entry-card__icon-wrap">
         <view class="mic-icon"></view>
       </view>

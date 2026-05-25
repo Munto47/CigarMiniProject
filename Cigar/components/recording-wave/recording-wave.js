@@ -1,11 +1,11 @@
 Component({
   properties: {
-    maxDuration: { type: Number, value: 30 }
+    maxDuration: { type: Number, value: 60 }
   },
 
   data: {
     recording: false,
-    countdown: 30,
+    countdown: 60,
     bars: [20, 20, 20, 20, 20],
     transcript: ''
   },
@@ -20,7 +20,7 @@ Component({
     startRecording() {
       if (this.data.recording) return
       this._rm = wx.getRecorderManager()
-      this._rm.start({ duration: this.data.maxDuration * 1000, sampleRate: 44100, format: 'mp3' })
+      this._rm.start({ duration: this.data.maxDuration * 1000, sampleRate: 16000, numberOfChannels: 1, format: 'mp3' })
       this._rm.onStart(() => {
         this.setData({ recording: true, countdown: this.data.maxDuration })
         this._startWave()

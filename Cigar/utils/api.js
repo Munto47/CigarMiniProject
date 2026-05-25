@@ -577,30 +577,18 @@ function getFlavorTags() {
 }
 
 /**
- * 语音风味分析
+ * 语音/文字风味分析（发送 base64 音频或文字到后端）
+ * @param {number} [cigarId] - 关联雪茄ID
+ * @param {string} [audioBase64] - Base64 编码的音频数据
+ * @param {string} [audioFormat] - 音频格式 (mp3/wav/pcm/m4a/aac)
+ * @param {string} [text] - 文字描述（跳过ASR，直接提取风味）
  */
-function analyzeVoice(cigarId, filePath) {
-  // 微信小程序语音上传
-  return new Promise((resolve, reject) => {
-    wx.uploadFile({
-      url: `${require('./request').BASE_URL}/flavor/analyze-voice`,
-      filePath,
-      name: 'voice',
-      formData: cigarId ? { cigarId: String(cigarId) } : {},
-      header: {
-        'Authorization': `Bearer ${require('./request').getAccessToken()}`,
-      },
-      success: (res) => {
-        try {
-          const data = JSON.parse(res.data)
-          if (data.code === 0) resolve(data.data)
-          else reject(new Error(data.message))
-        } catch {
-          reject(new Error('解析响应失败'))
-        }
-      },
-      fail: reject,
-    })
+function analyzeVoice({ cigarId, audioBase64, audioFormat, text } = {}) {
+  return post('/flavor/analyze-voice', {
+    audioBase64,
+    audioFormat: audioFormat || 'mp3',
+    text,
+    cigarId: cigarId ? Number(cigarId) : undefined,
   })
 }
 
@@ -878,59 +866,6 @@ function matchCigarByFlavors(tags) {
     .catch(() => mockStore.matchCigarByTags(tags))
 }
 
-// ==================== DeepSeek AI 分析 ====================
-
-const DEEPSEEK_API_KEY = 'YOUR_DEEPSEEK_API_KEY' // 替换为实际的 DeepSeek API Key
-
-/**
- * 使用 DeepSeek 大模型分析雪茄风味描述，提取风味关键词和品鉴总结
- * @param {string} text - 用户输入的品鉴描述文字
- */
-function analyzeFlavorWithDeepSeek(text) {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: 'https://api.deepseek.com/chat/completions',
-      method: 'POST',
-      header: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-      },
-      data: {
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一位专业雪茄品鉴师，擅长从品鉴描述中提取风味关键词。请始终以JSON格式回复，不要包含任何额外文字。',
-          },
-          {
-            role: 'user',
-            content: `从以下雪茄品鉴描述中提取3个最具代表性的风味关键词（用中文，如木质、烟草、咖啡、可可、奶油、皮革、香草、胡椒、泥土、花香等），并给出一句不超过40字的品鉴总结。\n\n以JSON格式返回：{"flavors":["关键词1","关键词2","关键词3"],"summary":"一句话总结"}\n\n品鉴描述：${text}`,
-          },
-        ],
-        max_tokens: 200,
-        response_format: { type: 'json_object' },
-      },
-      success: (res) => {
-        if (res.statusCode === 200 && res.data && res.data.choices && res.data.choices[0]) {
-          try {
-            const content = res.data.choices[0].message.content
-            const parsed = JSON.parse(content)
-            resolve({
-              flavors: parsed.flavors || ['木质烟草', '咖啡可可', '奶油丝滑'],
-              transcript: parsed.summary || text,
-            })
-          } catch {
-            resolve({ flavors: ['木质烟草', '咖啡可可', '奶油丝滑'], transcript: text })
-          }
-        } else {
-          reject(new Error('DeepSeek API 调用失败'))
-        }
-      },
-      fail: (err) => reject(err),
-    })
-  })
-}
-
 // ==================== 导出 ====================
 
 module.exports = {
@@ -1021,7 +956,4 @@ module.exports = {
 
   // 店铺
   getStoreInfo,
-
-  // DeepSeek AI 分析
-  analyzeFlavorWithDeepSeek,
 }

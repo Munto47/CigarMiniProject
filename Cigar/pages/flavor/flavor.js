@@ -114,6 +114,10 @@ Page({
     wx.navigateTo({ url: '/pages/poster/poster' })
   },
 
+  goToVoiceAnalysis() {
+    wx.navigateTo({ url: '/pages/poster/poster' })
+  },
+
   resetAll() {
     this.setData({
       tags: this.data.tags.map(t => ({ ...t, selected: false })),
