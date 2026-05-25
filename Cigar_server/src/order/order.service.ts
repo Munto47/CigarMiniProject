@@ -213,9 +213,9 @@ export class OrderService {
       this.metrics.ordersCreatedTotal.inc({ pay_method: 'balance' });
     }
 
-    // 清空购物车
+    // 仅清除本次下单的购物车商品（保留其他商品）
     if (!result.idempotent) {
-      await this.cartService.clearCart(userId);
+      await this.cartService.clearCartItems(userId, dto.items);
     }
 
     return result;
@@ -235,21 +235,21 @@ export class OrderService {
       }
 
       const o = order[0];
-      if (o.status !== 'pending') {
-        throw new BusinessException(ErrorCode.ORDER_STATUS_FORBIDDEN, '仅待支付订单可取消');
+      if (!OrderStateMachine.canTransit(o.status, 'cancelled')) {
+        throw new BusinessException(ErrorCode.ORDER_STATUS_FORBIDDEN, `当前状态 ${o.status} 不允许取消`);
       }
 
-      // 释放预占库存
+      // 释放预占库存（防负数：使用 GREATEST 确保 stock_locked 不低于 0）
       const items = await tx.orderItem.findMany({ where: { orderId: BigInt(orderId) } });
       for (const item of items) {
         if (item.productType === 'cigar') {
           await tx.$executeRawUnsafe(
-            `UPDATE cigars SET stock_locked = stock_locked - $1, updated_at = now() WHERE id = $2`,
+            `UPDATE cigars SET stock_locked = GREATEST(0, stock_locked - $1), updated_at = now() WHERE id = $2`,
             item.qty, item.productId,
           );
         } else {
           await tx.$executeRawUnsafe(
-            `UPDATE drinks SET stock_locked = stock_locked - $1, updated_at = now() WHERE id = $2`,
+            `UPDATE drinks SET stock_locked = GREATEST(0, stock_locked - $1), updated_at = now() WHERE id = $2`,
             item.qty, item.productId,
           );
         }

@@ -81,6 +81,7 @@ model Admin {
   status             Int       @default(1) @db.SmallInt
   mustChangePassword Boolean   @default(true) @map("must_change_password")
   passwordChangedAt  DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz()
+  failedAttempts     Int       @default(0) @map("failed_attempts")
   lockedUntil        DateTime? @map("locked_until") @db.Timestamptz()
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz()
   lastLoginIp        String?   @map("last_login_ip")

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HistoryService } from '../../src/history/history.service';
 import { FlavorService } from '../../src/flavor/flavor.service';
+import { AsrService } from '../../src/asr/asr.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -70,11 +71,16 @@ describe('FlavorService (unit)', () => {
       },
     };
 
+    const mockAsrService = {
+      recognizeSentence: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FlavorService,
         { provide: PrismaService, useValue: prisma },
         { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('true') } },
+        { provide: AsrService, useValue: mockAsrService },
       ],
     }).compile();
 
@@ -82,11 +88,11 @@ describe('FlavorService (unit)', () => {
   });
 
   it('Mock 模式语音分析返回风味标签和评分', async () => {
-    const result = await service.analyzeVoice('/voices/1.wav', 5);
+    const result = await service.analyzeVoice({ audioBase64: 'mock_audio', cigarId: 5 });
     expect(result.flavorTags).toBeDefined();
     expect(result.flavorTags.length).toBeGreaterThan(0);
     expect(result.flavorScores).toBeDefined();
-    expect(result.note).toContain('Mock');
+    expect((result as any).note).toContain('Mock');
   });
 
   it('获取风味标签列表', async () => {

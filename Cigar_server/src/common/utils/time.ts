@@ -20,6 +20,17 @@ export function nowBeijing(): string {
   return toBeijing(new Date());
 }
 
+/** 返回当前北京时间今天 00:00:00（作为 Date 对象，用于数据库查询） */
+export function beijingTodayStart(): Date {
+  const now = new Date();
+  // 转换为北京时间
+  now.setMinutes(now.getMinutes() + now.getTimezoneOffset() + 480);
+  now.setHours(0, 0, 0, 0);
+  // 转回 UTC
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset() - 480);
+  return now;
+}
+
 /** 返回当前 UTC Date */
 export function nowUtc(): Date {
   return new Date();

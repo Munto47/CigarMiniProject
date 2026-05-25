@@ -20,6 +20,7 @@ export class ExportService {
       where,
       include: { orderItems: true },
       orderBy: { createdAt: 'desc' },
+      take: 10000,
     });
 
     const workbook = new ExcelJS.Workbook();
@@ -68,6 +69,7 @@ export class ExportService {
       where,
       include: { user: { select: { nickname: true } } },
       orderBy: { createdAt: 'desc' },
+      take: 10000,
     });
 
     const workbook = new ExcelJS.Workbook();
@@ -109,6 +111,7 @@ export class ExportService {
         cigarTags: { include: { tag: { select: { name: true } } } },
       },
       orderBy: [{ brand: 'asc' }, { name: 'asc' }],
+      take: 5000,
     });
 
     const workbook = new ExcelJS.Workbook();

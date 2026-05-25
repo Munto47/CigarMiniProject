@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AdminAuthService } from './admin-auth.service';
 import { Public } from '../common/decorators/public.decorator';
+import { AllowPasswordChange } from '../common/decorators/allow-password-change.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from './jwt.strategy';
 import { AdminLoginDto } from './dto/admin-login.dto';
@@ -27,8 +28,9 @@ export class AdminAuthController {
     return this.adminAuthService.refreshAdminToken(refreshToken);
   }
 
+  @AllowPasswordChange()
   @Post('change-password')
-  @ApiOperation({ summary: '修改密码' })
+  @ApiOperation({ summary: '修改密码（允许受限 Token）' })
   async changePassword(
     @CurrentUser() user: JwtPayload,
     @Body() dto: AdminChangePasswordDto,

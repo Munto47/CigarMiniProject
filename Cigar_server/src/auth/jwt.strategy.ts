@@ -7,6 +7,7 @@ export interface JwtPayload {
   sub: string;
   type: 'user' | 'admin';
   roleCode?: string;
+  scope?: string;
   iat?: number;
   exp?: number;
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -14,6 +14,8 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AdminAuthService {
+  private readonly logger = new Logger(AdminAuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
@@ -38,12 +40,48 @@ export class AdminAuthService {
       throw new BusinessException(ErrorCode.FORBIDDEN, '账号已被禁用');
     }
 
+    // 检查账号是否被锁定
+    if (admin.lockedUntil && admin.lockedUntil > new Date()) {
+      const remainingMinutes = Math.ceil((admin.lockedUntil.getTime() - Date.now()) / 60000);
+      throw new BusinessException(
+        ErrorCode.FORBIDDEN,
+        `账号已被临时锁定，请在 ${remainingMinutes} 分钟后重试`,
+      );
+    }
+
     // 验证密码
     const valid = await bcrypt.compare(dto.password, admin.passwordHash);
 
     if (!valid) {
-      await this.logAdminLogin(admin.id, username, 'failed', '密码错误', ip, userAgent);
+      // 记录失败尝试并判断是否锁定
+      const maxAttempts = parseInt(this.config.get<string>('ADMIN_LOGIN_MAX_ATTEMPTS', '5'), 10);
+      const lockMinutes = parseInt(this.config.get<string>('ADMIN_LOGIN_LOCK_MINUTES', '30'), 10);
+
+      const failedCount = admin.failedAttempts + 1;
+      if (failedCount >= maxAttempts) {
+        const lockedUntil = new Date(Date.now() + lockMinutes * 60 * 1000);
+        await this.prisma.admin.update({
+          where: { id: admin.id },
+          data: { failedAttempts: failedCount, lockedUntil },
+        });
+        this.logger.warn(`管理员 ${username} 登录失败 ${failedCount} 次，已锁定至 ${lockedUntil.toISOString()}`);
+      } else {
+        await this.prisma.admin.update({
+          where: { id: admin.id },
+          data: { failedAttempts: failedCount },
+        });
+      }
+
+      await this.logAdminLogin(admin.id, username, 'failed', `密码错误 (第${failedCount}次)`, ip, userAgent);
       throw new BusinessException(ErrorCode.VALIDATION_FAILED, '用户名或密码错误');
+    }
+
+    // 密码正确，清除失败计数和锁定
+    if (admin.failedAttempts > 0 || admin.lockedUntil) {
+      await this.prisma.admin.update({
+        where: { id: admin.id },
+        data: { failedAttempts: 0, lockedUntil: null },
+      });
     }
 
     // 检查是否需要修改密码
@@ -58,7 +96,7 @@ export class AdminAuthService {
     });
 
     if (mustChange) {
-      // 签发受限 token（仅允许修改密码）
+      // 签发受限 token（仅允许修改密码，15 分钟有效）
       const jti = randomUUID();
       const accessToken = this.jwtService.sign(
         {
@@ -76,7 +114,18 @@ export class AdminAuthService {
       );
 
       await this.logAdminLogin(admin.id, username, 'success', '需修改密码', ip, userAgent);
-      throw new BusinessException(ErrorCode.MUST_CHANGE_PASSWORD, '请修改初始密码');
+      return {
+        accessToken,
+        refreshToken: null,
+        expiresIn: 900,
+        admin: {
+          id: admin.id.toString(),
+          username: admin.username,
+          name: admin.name,
+          roleCode: admin.roleCode,
+          mustChangePassword: true,
+        },
+      };
     }
 
     await this.logAdminLogin(admin.id, username, 'success', null, ip, userAgent);

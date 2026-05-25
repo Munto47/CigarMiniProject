@@ -103,11 +103,30 @@ export class RechargeService {
     const { outTradeNo, transactionId, amountTotal } = result;
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. 锁充值订单行
-      const order = await tx.rechargeOrder.findUnique({ where: { rechargeNo: outTradeNo } });
-      if (!order) {
+      // 1. 锁充值订单行（FOR UPDATE 防并发重复入账）
+      const rows = await tx.$queryRawUnsafe<Array<{
+        id: bigint; recharge_no: string; user_id: bigint; tier_id: bigint;
+        amount_cents: bigint; bonus_cents: bigint; total_cents: bigint;
+        status: string; idempotency_key: string | null;
+      }>>(
+        `SELECT id, recharge_no, user_id, tier_id, amount_cents, bonus_cents, total_cents, status, idempotency_key FROM recharge_orders WHERE recharge_no = $1 FOR UPDATE`,
+        outTradeNo,
+      );
+      if (!rows || rows.length === 0) {
         throw new BusinessException(ErrorCode.VALIDATION_FAILED, '充值订单不存在');
       }
+      const row = rows[0];
+      const order = {
+        id: row.id,
+        rechargeNo: row.recharge_no,
+        userId: row.user_id,
+        tierId: row.tier_id,
+        amountCents: row.amount_cents,
+        bonusCents: row.bonus_cents,
+        totalCents: row.total_cents,
+        status: row.status,
+        idempotencyKey: row.idempotency_key,
+      };
 
       // 2. 幂等命中：已成功则直接返回
       if (order.status === 'success') {

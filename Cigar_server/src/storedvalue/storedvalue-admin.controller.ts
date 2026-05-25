@@ -3,7 +3,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger
 import type { Request } from 'express';
 import { AdjustService } from './adjust.service';
 import { RechargeService } from './recharge.service';
+import { LevelRecalcService } from './level-recalc.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BusinessException } from '../common/exceptions/business.exception';
+import { ErrorCode } from '../common/constants/error-codes';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { paginate } from '../common/dto/pagination.dto';
@@ -19,6 +22,7 @@ export class StoredValueAdminController {
   constructor(
     private readonly adjustService: AdjustService,
     private readonly rechargeService: RechargeService,
+    private readonly levelRecalcService: LevelRecalcService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -35,9 +39,17 @@ export class StoredValueAdminController {
     if (!idempotencyKey) {
       return { code: 2001, message: '缺少 Idempotency-Key 头' };
     }
+    const adminId = BigInt(user.sub);
+    const admin = await this.prisma.admin.findUnique({
+      where: { id: adminId },
+      select: { name: true },
+    });
+    if (!admin) {
+      throw new BusinessException(ErrorCode.FORBIDDEN, '管理员不存在');
+    }
     return this.adjustService.adjustBalance(
-      BigInt(user.sub),
-      user.sub,
+      adminId,
+      admin.name,
       dto,
       idempotencyKey,
       req.ip,
@@ -96,6 +108,24 @@ export class StoredValueAdminController {
   @RequirePermissions('storedvalue:level-config')
   @ApiOperation({ summary: '查询等级重算进度' })
   async getRecalcProgress(@Param('jobId') jobId: string) {
-    return { message: `查询 jobId=${jobId} 进度（暂存内存）` };
+    const jobIdNum = parseInt(jobId, 10);
+    // 优先从内存进度 Map 获取（运行中的任务）
+    const memProgress = this.levelRecalcService.getProgress?.(jobIdNum);
+    if (memProgress) return memProgress;
+
+    // 从数据库获取（已完成/失败的任务）
+    const job = await this.prisma.levelRecalcJob.findUnique({
+      where: { id: BigInt(jobIdNum) },
+      select: { id: true, status: true, totalUsers: true, affectedUsers: true, startedAt: true, finishedAt: true },
+    });
+    if (!job) return { message: '重算任务不存在' };
+    return {
+      jobId: job.id.toString(),
+      status: job.status,
+      totalUsers: job.totalUsers,
+      affectedUsers: job.affectedUsers,
+      startedAt: job.startedAt?.toISOString() ?? null,
+      finishedAt: job.finishedAt?.toISOString() ?? null,
+    };
   }
 }

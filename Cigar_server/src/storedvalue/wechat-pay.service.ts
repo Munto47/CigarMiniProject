@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../infra/redis/redis.service';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { ErrorCode } from '../common/constants/error-codes';
-import { randomUUID, createHash, createHmac } from 'crypto';
+import { randomUUID, createHash, createSign } from 'crypto';
 import axios from 'axios';
 
 export interface WechatPayParams {
@@ -54,7 +54,7 @@ export class WechatPayService {
       mchid: mchId,
       description: params.description,
       out_trade_no: params.outTradeNo,
-      notify_url: `https://api.cigarpro.com/api/payment/wechat-callback`,
+      notify_url: this.config.get<string>('WECHAT_NOTIFY_URL')!,
       amount: { total: params.amountCents, currency: 'CNY' },
       payer: { openid: params.openid },
     };
@@ -105,27 +105,35 @@ export class WechatPayService {
     const pkg = `prepay_id=${prepayId}`;
 
     const signStr = `${appId}\n${timeStamp}\n${nonceStr}\n${pkg}\n`;
-    const paySign = createHmac('sha256', this.config.get<string>('WECHAT_API_KEY')!)
-      .update(signStr)
-      .digest('hex')
-      .toUpperCase();
+    const privateKey = this.config.get<string>('WECHAT_MERCHANT_PRIVATE_KEY')!;
+    if (!privateKey) {
+      throw new Error('微信支付商户私钥未配置 (WECHAT_MERCHANT_PRIVATE_KEY)');
+    }
+
+    const sign = createSign('RSA-SHA256');
+    sign.update(signStr);
+    const paySign = sign.sign(privateKey, 'base64');
 
     return { timeStamp, nonceStr, package: pkg, signType: 'RSA', paySign, prepayId };
   }
 
-  /** 微信 API v3 签名头 */
+  /** 微信 API v3 签名头（RSA-SHA256） */
   private async getHeaders(method: string, path: string, body: unknown) {
     const mchId = this.config.get<string>('WECHAT_MCH_ID')!;
-    const serialNo = this.config.get<string>('WECHAT_CERT_SERIAL_NO')!;
+    const serialNo = this.config.get<string>('WECHAT_SERIAL_NO')!;
     const nonceStr = randomUUID().replace(/-/g, '').slice(0, 32);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const bodyStr = body ? JSON.stringify(body) : '';
 
     const signStr = `${method}\n${path}\n${timestamp}\n${nonceStr}\n${bodyStr}\n`;
-    // 生产环境需从 KMS 取商户私钥签名，此处用 HMAC 占位
-    const signature = createHmac('sha256', this.config.get<string>('WECHAT_API_KEY')!)
-      .update(signStr)
-      .digest('hex');
+    const privateKey = this.config.get<string>('WECHAT_MERCHANT_PRIVATE_KEY')!;
+    if (!privateKey) {
+      throw new Error('微信支付商户私钥未配置 (WECHAT_MERCHANT_PRIVATE_KEY)');
+    }
+
+    const sign = createSign('RSA-SHA256');
+    sign.update(signStr);
+    const signature = sign.sign(privateKey, 'base64');
 
     return {
       Authorization: `WECHATPAY2-SHA256-RSA2048 mchid="${mchId}",nonce_str="${nonceStr}",signature="${signature}",timestamp="${timestamp}",serial_no="${serialNo}"`,

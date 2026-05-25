@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  IsArray, IsString, IsInt, IsIn, Min, Max, ValidateNested,
+  IsArray, IsString, IsInt, IsIn, Min, Max, MaxLength, ValidateNested,
   IsOptional, Matches,
 } from 'class-validator';
 
@@ -30,6 +30,6 @@ export class CreateOrderDto {
 
   @IsOptional()
   @IsString()
-  @Max(255)
+  @MaxLength(255)
   remark?: string;
 }

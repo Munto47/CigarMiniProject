@@ -154,6 +154,23 @@ export class CartService {
     await this.prisma.cartItem.deleteMany({ where: { userId } });
   }
 
+  /** 仅清除指定商品（下单后调用，避免清空购物车中其他商品） */
+  async clearCartItems(
+    userId: bigint,
+    items: { productType: string; productId: number }[],
+  ) {
+    if (items.length === 0) return;
+    const productIds = items.map((i) => BigInt(i.productId));
+    const productTypes = [...new Set(items.map((i) => i.productType))];
+    await this.prisma.cartItem.deleteMany({
+      where: {
+        userId,
+        productType: { in: productTypes },
+        productId: { in: productIds },
+      },
+    });
+  }
+
   async getCount(userId: bigint): Promise<number> {
     return this.prisma.cartItem.count({ where: { userId } });
   }

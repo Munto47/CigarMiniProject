@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { paginate, PaginatedResult } from '../common/dto/pagination.dto';
 import { centsToYuan } from '../common/utils/money';
@@ -10,6 +11,20 @@ export class ReconciliationService {
   private readonly logger = new Logger(ReconciliationService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /** 每日凌晨 3:00 自动执行前一日对账 */
+  @Cron('0 3 * * *')
+  async scheduledReconciliation() {
+    const yesterday = this.getYesterday();
+    const dateStr = yesterday.toISOString().slice(0, 10);
+    this.logger.log(`定时对账任务启动: ${dateStr}`);
+    try {
+      const result = await this.runDailyReconciliation(dateStr);
+      this.logger.log(`定时对账完成: ${dateStr}, 差异数=${result.diffCount}`);
+    } catch (err) {
+      this.logger.error(`定时对账失败: ${dateStr}`, err);
+    }
+  }
 
   async runDailyReconciliation(date?: string, adminId?: bigint) {
     const targetDate = date ? new Date(date) : this.getYesterday();
@@ -57,7 +72,7 @@ export class ReconciliationService {
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // Our side: count successful payments
+    // 我方数据：成功支付记录 + 充值订单
     const ourPayments = await this.prisma.paymentRecord.aggregate({
       _count: true,
       _sum: { amountCents: true },
@@ -68,7 +83,6 @@ export class ReconciliationService {
       },
     });
 
-    // Our side: also count successful recharge orders
     const ourRecharges = channel === 'wechat'
       ? await this.prisma.rechargeOrder.aggregate({
           _count: true,
@@ -83,13 +97,31 @@ export class ReconciliationService {
     const ourCount = ourPayments._count + ourRecharges._count;
     const ourAmount = (ourPayments._sum.amountCents ?? 0n) + (ourRecharges._sum.totalCents ?? 0n);
 
-    // Platform side: stub (actual implementation would call WeChat/Meituan API)
-    // For now, use our own data as platform reference
-    const platformCount = ourCount;
-    const platformAmount = ourAmount;
+    // 平台侧数据：需对接微信支付账单下载 API 获取真实对账单
+    // https://pay.weixin.qq.com/doc/v3/merchant/4012464657
+    // 当前为占位——未对接外部平台时差异始终为 0
+    let platformCount: number;
+    let platformAmount: bigint;
 
-    const diffCount = ourCount - platformCount;
-    const diffAmount = ourAmount - platformAmount;
+    if (channel === 'wechat') {
+      // TODO: 调用微信支付账单下载 API，获取当日平台侧交易数据
+      // const bill = await this.wechatBillService.downloadBill(date);
+      // platformCount = bill.count;
+      // platformAmount = bill.amount;
+      platformCount = -1; // -1 表示未对接
+      platformAmount = -1n;
+    } else if (channel === 'balance') {
+      // 余额支付无外部平台，自身数据即为平台数据
+      platformCount = ourCount;
+      platformAmount = ourAmount;
+    } else {
+      // 美团等渠道：需调用对应平台 API
+      platformCount = -1;
+      platformAmount = -1n;
+    }
+
+    const diffCount = platformCount === -1 ? 0 : ourCount - platformCount;
+    const diffAmount = platformAmount === -1n ? 0n : (ourAmount - platformAmount);
 
     return {
       ourCount,
@@ -99,7 +131,7 @@ export class ReconciliationService {
       diffCount,
       diffAmountCents: diffAmount,
       diffDetail: diffCount !== 0 || diffAmount !== 0n
-        ? { ourCount, ourAmount: ourAmount.toString(), platformCount, platformAmount: platformAmount.toString() }
+        ? { ourCount, ourAmount: ourAmount.toString(), platformCount: platformCount.toString(), platformAmount: platformAmount.toString() }
         : undefined,
     };
   }

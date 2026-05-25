@@ -1,10 +1,20 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 保存原始请求体 Buffer，用于微信支付回调验签
+  app.use(
+    express.json({
+      verify: (req: any, _res, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
 
   app.setGlobalPrefix(process.env.API_PREFIX ?? 'api');
 

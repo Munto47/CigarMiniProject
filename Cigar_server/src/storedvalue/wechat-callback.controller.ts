@@ -71,7 +71,11 @@ export class WechatCallbackController {
       await this.redis.set(nonceKey, '1', 300);
 
       // 验签：使用平台证书公钥验证 RSA-SHA256 签名
-      const message = `${timestamp}\n${nonce}\n${JSON.stringify(rawBody)}\n`;
+      // 必须使用原始 HTTP 报文字节，JSON.stringify 会改变字段顺序/空格导致验签失败
+      const rawBodyStr = (req as any).rawBody
+        ? (req as any).rawBody.toString('utf-8')
+        : JSON.stringify(rawBody);
+      const message = `${timestamp}\n${nonce}\n${rawBodyStr}\n`;
       const platformCert = this.config.get<string>('WECHAT_PLATFORM_CERT', '');
       if (!platformCert) {
         this.logger.error('微信平台证书未配置');

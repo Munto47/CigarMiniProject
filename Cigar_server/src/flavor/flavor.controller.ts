@@ -13,7 +13,7 @@ export class FlavorController {
   @ApiOperation({ summary: '语音风味分析' })
   @ApiBearerAuth()
   async analyzeVoice(@Body() dto: AnalyzeVoiceDto) {
-    return this.flavorService.analyzeVoice(dto.voiceUrl, dto.cigarId);
+    return this.flavorService.analyzeVoice(dto);
   }
 
   @Get('tags')

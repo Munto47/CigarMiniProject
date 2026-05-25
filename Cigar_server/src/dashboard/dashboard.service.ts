@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { centsToYuan } from '../common/utils/money';
-import { toBeijing } from '../common/utils/time';
+import { toBeijing, beijingTodayStart } from '../common/utils/time';
 
 @Injectable()
 export class DashboardService {
@@ -9,8 +9,11 @@ export class DashboardService {
 
   async getOverview() {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // 使用北京时间当天 00:00:00，避免服务器 UTC 时区与北京时间差 8 小时
+    const todayStart = beijingTodayStart();
+    now.setMinutes(now.getMinutes() + now.getTimezoneOffset() + 480);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset() - 480);
 
     const [
       totalUsers,

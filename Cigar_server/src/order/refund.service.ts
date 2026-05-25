@@ -161,7 +161,7 @@ export class RefundService {
     refundNo: string,
   ) {
     const userId = order.userId;
-    const pointsDelta = amountCents;
+    const pointsDelta = Math.floor(amountCents / 100);
 
     // 回退余额
     await tx.$executeRawUnsafe(
