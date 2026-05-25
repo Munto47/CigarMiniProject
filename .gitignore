@@ -12,6 +12,11 @@ project.private.config.json
 .env.*
 *.pem
 *.key
+*.p12
+*.cer
+*.crt
+docs/files/
+.claude/
 
 # ===== 日志 =====
 logs/
