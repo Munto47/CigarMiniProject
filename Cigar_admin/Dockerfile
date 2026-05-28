@@ -9,8 +9,8 @@ WORKDIR /app
 RUN npm install -g pnpm --registry=https://registry.npmmirror.com
 RUN npm config set registry https://registry.npmmirror.com
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --no-frozen-lockfile --registry=https://registry.npmmirror.com
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm run build

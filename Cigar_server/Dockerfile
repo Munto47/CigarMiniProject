@@ -11,10 +11,10 @@ RUN npm install -g pnpm --registry=https://registry.npmmirror.com
 RUN npm config set registry https://registry.npmmirror.com
 
 # 仅复制依赖清单，充分利用 Docker 层缓存
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 
 # 安装全部依赖（含 devDeps，构建需要）
-RUN pnpm install --no-frozen-lockfile --registry=https://registry.npmmirror.com
+RUN pnpm install --no-frozen-lockfile
 
 # 复制源码
 COPY . .
