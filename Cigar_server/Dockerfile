@@ -6,14 +6,15 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# 安装 pnpm
-RUN npm install -g pnpm
+# 安装 pnpm，并切换到淘宝镜像加速
+RUN npm install -g pnpm --registry=https://registry.npmmirror.com
+RUN npm config set registry https://registry.npmmirror.com
 
 # 仅复制依赖清单，充分利用 Docker 层缓存
 COPY package.json pnpm-lock.yaml ./
 
 # 安装全部依赖（含 devDeps，构建需要）
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --registry=https://registry.npmmirror.com
 
 # 复制源码
 COPY . .

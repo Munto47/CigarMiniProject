@@ -6,10 +6,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm --registry=https://registry.npmmirror.com
+RUN npm config set registry https://registry.npmmirror.com
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --registry=https://registry.npmmirror.com
 
 COPY . .
 RUN pnpm run build
