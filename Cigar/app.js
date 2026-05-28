@@ -1,6 +1,6 @@
 // app.js
 const { wechatLogin } = require('./utils/api')
-const { saveTokens, saveUserInfo, getAccessToken } = require('./utils/request')
+const { saveTokens, saveUserInfo, getAccessToken, clearTokens } = require('./utils/request')
 
 App({
   globalData: {
@@ -9,28 +9,110 @@ App({
   },
 
   onLaunch() {
-    this._autoLogin()
+    this._autoLogin({ silent: true }).catch(() => {})
   },
 
-  async _autoLogin() {
-    if (getAccessToken()) return
+  async _autoLogin(options = {}) {
+    const { silent = true, force = false } = options
 
-    wx.login({
-      success: async ({ code }) => {
-        try {
-          const res = await wechatLogin(code)
-          saveTokens(res.accessToken, res.refreshToken)
-          if (res.user) saveUserInfo(res.user)
-        } catch {
-          // 后端不可用 → 进入本地演示模式，保存演示 token 使各页面正常展示
-          saveTokens('demo_local', '')
-          saveUserInfo({ userId: 1, nickname: '雪茄绅士' })
+    if (this._loginPromise) {
+      return this._loginPromise
+    }
+
+    if (!force && getAccessToken()) {
+      return
+    }
+
+    this._loginPromise = new Promise((resolve, reject) => {
+      wx.login({
+        success: async ({ code }) => {
+          if (!code) {
+            clearTokens()
+            const err = new Error('未获取到微信登录凭证')
+            if (!silent) {
+              wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+            }
+            this._loginPromise = null
+            reject(err)
+            return
+          }
+
+          try {
+            const res = await wechatLogin(code)
+            if (!res || !res.accessToken) {
+              throw new Error('登录响应缺少 accessToken')
+            }
+            saveTokens(res.accessToken, res.refreshToken)
+            if (res.user) saveUserInfo(res.user)
+            resolve(res)
+          } catch (err) {
+            clearTokens()
+            if (!silent) {
+              wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+            }
+            reject(err)
+          } finally {
+            this._loginPromise = null
+          }
+        },
+        fail: (err) => {
+          clearTokens()
+          if (!silent) {
+            wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+          }
+          this._loginPromise = null
+          reject(err || new Error('微信登录失败'))
         }
-      },
-      fail: () => {
-        saveTokens('demo_local', '')
-        saveUserInfo({ userId: 1, nickname: '雪茄绅士' })
-      }
+      })
+    })
+
+    return this._loginPromise
+  },
+
+  promptLogin(options = {}) {
+    const {
+      message = '当前操作需要登录，是否立即登录？',
+      onSuccess,
+      onCancel,
+      onFail,
+    } = options
+
+    if (this._loginPromptVisible) {
+      return Promise.resolve(false)
+    }
+
+    this._loginPromptVisible = true
+
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '登录提示',
+        content: message,
+        confirmText: '立即登录',
+        cancelText: '稍后再说',
+        success: async ({ confirm }) => {
+          if (!confirm) {
+            this._loginPromptVisible = false
+            if (typeof onCancel === 'function') onCancel()
+            resolve(false)
+            return
+          }
+
+          try {
+            await this._autoLogin({ silent: false, force: true })
+            this._loginPromptVisible = false
+            if (typeof onSuccess === 'function') onSuccess()
+            resolve(true)
+          } catch (err) {
+            this._loginPromptVisible = false
+            if (typeof onFail === 'function') onFail(err)
+            resolve(false)
+          }
+        },
+        fail: () => {
+          this._loginPromptVisible = false
+          resolve(false)
+        }
+      })
     })
   },
 

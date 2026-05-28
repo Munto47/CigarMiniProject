@@ -105,7 +105,7 @@ Page({
     wx.vibrateShort({ type: 'light' })
 
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+      getApp().promptLogin({ message: '加入购物车前请先登录' })
       return
     }
 
@@ -143,7 +143,7 @@ Page({
     wx.vibrateShort({ type: 'light' })
 
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+      getApp().promptLogin({ message: '加入购物车前请先登录' })
       return
     }
     if ((drink.stockAvailable ?? 1) <= 0) {
@@ -167,7 +167,7 @@ Page({
     if (!drink) return
 
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+      getApp().promptLogin({ message: '立即下单前请先登录' })
       return
     }
     if ((drink.stockAvailable ?? 1) <= 0) {
@@ -188,7 +188,7 @@ Page({
 
   openReviewModal() {
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+      getApp().promptLogin({ message: '发表评价前请先登录' })
       return
     }
     this.setData({ showReviewModal: true, myRating: 0, reviewText: '' })

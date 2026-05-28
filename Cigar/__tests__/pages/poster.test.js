@@ -5,6 +5,7 @@ const mockCreatePoster = jest.fn()
 const mockAnalyzeVoice = jest.fn()
 const mockMatchCigarByFlavors = jest.fn()
 const mockIsLoggedIn = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getCigarDetail: mockGetCigarDetail,
@@ -15,7 +16,7 @@ jest.mock('../../utils/api', () => ({
 jest.mock('../../utils/request', () => ({ isLoggedIn: mockIsLoggedIn }))
 
 const mockGlobalData = {}
-global.getApp = () => ({ globalData: mockGlobalData })
+global.getApp = () => ({ globalData: mockGlobalData, promptLogin: mockPromptLogin })
 
 describe('pages/poster/poster', () => {
   let page
@@ -31,7 +32,8 @@ describe('pages/poster/poster', () => {
       fields: jest.fn().mockReturnThis(),
       exec: jest.fn(),
     }))
-    mockIsLoggedIn.mockReturnValue(false)
+    mockIsLoggedIn.mockReturnValue(true)
+    mockPromptLogin.mockResolvedValue(false)
     mockGetCigarDetail.mockResolvedValue({
       id: 5, name: '高希霸', tags: ['木质', '烟草', '咖啡'],
     })
@@ -95,9 +97,18 @@ describe('pages/poster/poster', () => {
   })
 
   describe('onRecordStop', () => {
-    it('录音结束后进入输入阶段', () => {
-      page.onRecordStop({ detail: { filePath: '/tmp/voice.mp3' } })
+    it('语音识别失败时进入输入阶段', async () => {
+      mockIsLoggedIn.mockReturnValue(true)
+      mockAnalyzeVoice.mockRejectedValue(new Error('fail'))
+      await page.onRecordStop({ detail: { filePath: '/tmp/voice.mp3' } })
       expect(page.setData).toHaveBeenCalledWith({ stage: 'input' })
+    })
+
+    it('未登录时先拉起登录提示', async () => {
+      mockIsLoggedIn.mockReturnValue(false)
+      mockPromptLogin.mockResolvedValue(false)
+      await page.onRecordStop({ detail: { filePath: '/tmp/voice.mp3' } })
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '使用 AI 语音识别前请先登录' })
     })
   })
 
@@ -143,7 +154,6 @@ describe('pages/poster/poster', () => {
       await page._autoSavePoster()
       expect(mockCreatePoster).toHaveBeenCalledWith({
         cigarId: 5,
-        cigarName: 'Cohiba',
         flavorTags: ['木质'],
         flavorScores: {},
         voiceText: '',

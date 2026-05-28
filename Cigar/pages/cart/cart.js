@@ -103,14 +103,17 @@ Page({
   checkout() {
     if (this.data.isEmpty) return
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
+      getApp().promptLogin({ message: '结算前请先登录' })
       return
     }
     wx.navigateTo({ url: '/pages/checkout/checkout' })
   },
 
   doLogin() {
-    getApp()._autoLogin().then(() => this._loadCart()).catch(() => {})
+    getApp().promptLogin({
+      message: '登录后可查看购物车',
+      onSuccess: () => this._loadCart(),
+    })
   },
 
   goExplore() {

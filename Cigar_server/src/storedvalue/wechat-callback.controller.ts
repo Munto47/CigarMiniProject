@@ -60,7 +60,24 @@ export class WechatCallbackController {
         return { code: 'FAIL', message: '缺少签名参数' };
       }
 
-      // 防重放：检查 nonce 是否使用过（Redis，5 分钟 TTL）
+      // 微信支付公钥方案：Wechatpay-Serial 头必须等于已配置的 PUB_KEY_ID
+      // （旧版平台证书方案下 serial 是证书序列号，需多证书路由；新版公钥固定一个 ID，不会过期）
+      const expectedPubKeyId = this.config.get<string>('WECHAT_PAY_PUB_KEY_ID', '');
+      if (expectedPubKeyId && serial !== expectedPubKeyId) {
+        this.logger.error(`微信回调 Wechatpay-Serial 不匹配: received=${serial} expected=${expectedPubKeyId}`);
+        this.metrics.paymentCallbackVerifyFailedTotal.inc({ channel: 'wechat' });
+        return { code: 'FAIL', message: '验签密钥不匹配' };
+      }
+
+      // 时间戳防回放（容差 5 分钟，与微信官方一致）
+      const tsNum = Number(timestamp);
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (!Number.isFinite(tsNum) || Math.abs(nowSec - tsNum) > 300) {
+        this.logger.warn(`微信回调时间戳超出容差: ts=${timestamp} now=${nowSec}`);
+        return { code: 'FAIL', message: '时间戳超出有效期' };
+      }
+
+      // 防重放：nonce 在 24h 内只能出现一次（微信最长重试窗口）
       const nonceKey = `wxpay:nonce:${nonce}`;
       const nonceExists = await this.redis.get(nonceKey);
       if (nonceExists) {
@@ -68,7 +85,7 @@ export class WechatCallbackController {
         this.metrics.paymentCallbacksReceivedTotal.inc({ channel: 'wechat', is_replay: 'true' });
         return { code: 'SUCCESS', message: 'OK (replay)' };
       }
-      await this.redis.set(nonceKey, '1', 300);
+      await this.redis.set(nonceKey, '1', 86400);
 
       // 验签：使用平台证书公钥验证 RSA-SHA256 签名
       // 必须使用原始 HTTP 报文字节，JSON.stringify 会改变字段顺序/空格导致验签失败
@@ -131,6 +148,18 @@ export class WechatCallbackController {
       } catch (err) {
         this.logger.error('AES-256-GCM 解密回调失败', err);
         return { code: 'FAIL', message: '解密失败' };
+      }
+
+      // 解密后必须校验 appid + mchid，防御伪造/串号
+      const expectedAppId = this.config.get<string>('WECHAT_APP_ID', '');
+      const expectedMchId = this.config.get<string>('WECHAT_MCH_ID', '');
+      if (expectedAppId && decrypted.appid && decrypted.appid !== expectedAppId) {
+        this.logger.error(`微信回调 appid 不匹配: ${decrypted.appid} vs ${expectedAppId}`);
+        return { code: 'FAIL', message: 'appid 不匹配' };
+      }
+      if (expectedMchId && decrypted.mchid && decrypted.mchid !== expectedMchId) {
+        this.logger.error(`微信回调 mchid 不匹配: ${decrypted.mchid} vs ${expectedMchId}`);
+        return { code: 'FAIL', message: 'mchid 不匹配' };
       }
 
       outTradeNo = decrypted.out_trade_no;

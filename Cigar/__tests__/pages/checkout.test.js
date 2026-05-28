@@ -9,6 +9,7 @@ const mockCreateOrder = jest.fn()
 const mockPayOrder = jest.fn()
 const mockSubmitReview = jest.fn()
 const mockIsLoggedIn = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getCart: mockGetCart,
@@ -22,7 +23,7 @@ jest.mock('../../utils/request', () => ({
   isLoggedIn: mockIsLoggedIn,
 }))
 
-const mockApp = { globalData: {} }
+const mockApp = { globalData: {}, promptLogin: mockPromptLogin }
 global.getApp = () => mockApp
 
 describe('pages/checkout/checkout', () => {
@@ -52,6 +53,7 @@ describe('pages/checkout/checkout', () => {
     mockCreateOrder.mockResolvedValue({ orderId: 100, id: 100 })
     mockPayOrder.mockResolvedValue({ paid: true })
     mockSubmitReview.mockResolvedValue({})
+    mockPromptLogin.mockResolvedValue(false)
 
     // Reset storage
     wx.removeStorageSync('checkout_idempotency_key')
@@ -69,9 +71,7 @@ describe('pages/checkout/checkout', () => {
     it('未登录时提示并返回', async () => {
       mockIsLoggedIn.mockReturnValue(false)
       await page.onLoad()
-      expect(wx.showToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: expect.stringContaining('登录') })
-      )
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '结算前请先登录' })
     })
 
     it('已登录时加载购物车和会员信息', async () => {

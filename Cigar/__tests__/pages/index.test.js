@@ -19,9 +19,11 @@ jest.mock('../../utils/request', () => ({
 }))
 
 const mockUpdateCartBadge = jest.fn()
+const mockPromptLogin = jest.fn()
 const mockApp = {
   globalData: { selectedTab: -1, cartCount: 0 },
   updateCartBadge: mockUpdateCartBadge,
+  promptLogin: mockPromptLogin,
 }
 global.getApp = () => mockApp
 
@@ -47,6 +49,7 @@ describe('pages/index/index', () => {
       { id: 10, name: '推荐雪茄', price: 200, match: 85, thumbUrl: '/a.jpg' },
     ])
     mockIsLoggedIn.mockReturnValue(false)
+    mockPromptLogin.mockResolvedValue(false)
     mockApp.globalData = { selectedTab: -1, cartCount: 0 }
   })
 
@@ -191,12 +194,11 @@ describe('pages/index/index', () => {
   })
 
   describe('addToCart', () => {
-    it('未登录时提示', async () => {
+    it('未登录时显示登录弹窗', async () => {
       mockIsLoggedIn.mockReturnValue(false)
+      page.data.loginModalVisible = false
       await page.addToCart({ currentTarget: { dataset: { id: 1 } } })
-      expect(wx.showToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: expect.stringContaining('登录') })
-      )
+      expect(page.setData).toHaveBeenCalledWith({ loginModalVisible: true })
     })
 
     it('登录后加入购物车成功', async () => {

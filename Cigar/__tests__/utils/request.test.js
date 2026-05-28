@@ -76,6 +76,9 @@ describe('request.js', () => {
 
       wx.setStorageSync('accessToken', 'at')
       expect(requestModule.isLoggedIn()).toBe(true)
+
+      wx.setStorageSync('accessToken', 'demo_local')
+      expect(requestModule.isLoggedIn()).toBe(false)
     })
   })
 

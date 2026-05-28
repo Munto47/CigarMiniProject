@@ -119,7 +119,7 @@ Page({
     }
     const { addToCart } = require('../../utils/api')
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
+      getApp().promptLogin({ message: '重新购买前请先登录' })
       return
     }
     addToCart({ productType: 'cigar', productId: cigarId, spec: '单支', qty: 1, _name: name })

@@ -26,65 +26,76 @@ export class AuthService {
   ) {}
 
   async wechatLogin(dto: WechatLoginDto, ip?: string) {
-    const { openid, session_key } = await this.code2Session(dto.code);
+    const allowDevFallback = this.shouldAllowWechatDevFallback();
 
-    let user = await this.prisma.user.findUnique({ where: { openid } });
-    let isNew = false;
+    try {
+      const { openid, session_key } = await this.code2Session(dto.code);
 
-    if (!user) {
-      user = await this.prisma.user.create({
+      let user = await this.prisma.user.findUnique({ where: { openid } });
+      let isNew = false;
+
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            openid,
+            nickname: '微信用户',
+            memberProfile: { create: {} },
+          },
+        });
+        isNew = true;
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.id },
         data: {
-          openid,
-          nickname: '微信用户',
-          memberProfile: { create: {} },
+          lastLoginAt: new Date(),
+          lastLoginIp: ip ?? null,
         },
       });
-      isNew = true;
+
+      await this.prisma.memberProfile.update({
+        where: { userId: user.id },
+        data: { loginCount: { increment: 1 } },
+      });
+
+      await this.redis.set(`sk:${user.id}`, session_key, 1800);
+
+      const memberProfile = await this.prisma.memberProfile.findUnique({
+        where: { userId: user.id },
+      });
+
+      const jti = randomUUID();
+      const payload: JwtPayload = { sub: user.id.toString(), type: 'user' };
+      const tokens = await this.generateTokens(payload, jti);
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresIn: 1800,
+        user: {
+          id: user.id.toString(),
+          nickname: user.nickname,
+          avatarUrl: user.avatarUrl,
+          phoneMask: user.phoneMask,
+          memberProfile: memberProfile
+            ? {
+                balanceCents: memberProfile.balanceCents.toString(),
+                balanceYuan: centsToYuan(memberProfile.balanceCents),
+                rechargeLevel: memberProfile.rechargeLevel,
+                consumptionLevel: memberProfile.consumptionLevel,
+              }
+            : null,
+        },
+        isNew,
+      };
+    } catch (error) {
+      if (allowDevFallback) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`开发环境登录持久层异常，回退到体验账号: ${errMsg}`);
+        return this.buildDevLoginResponse();
+      }
+      throw error;
     }
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        lastLoginAt: new Date(),
-        lastLoginIp: ip ?? null,
-      },
-    });
-
-    await this.prisma.memberProfile.update({
-      where: { userId: user.id },
-      data: { loginCount: { increment: 1 } },
-    });
-
-    await this.redis.set(`sk:${user.id}`, session_key, 1800);
-
-    const memberProfile = await this.prisma.memberProfile.findUnique({
-      where: { userId: user.id },
-    });
-
-    const jti = randomUUID();
-    const payload: JwtPayload = { sub: user.id.toString(), type: 'user' };
-    const tokens = await this.generateTokens(payload, jti);
-
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresIn: 1800,
-      user: {
-        id: user.id.toString(),
-        nickname: user.nickname,
-        avatarUrl: user.avatarUrl,
-        phoneMask: user.phoneMask,
-        memberProfile: memberProfile
-          ? {
-              balanceCents: memberProfile.balanceCents.toString(),
-              balanceYuan: centsToYuan(memberProfile.balanceCents),
-              rechargeLevel: memberProfile.rechargeLevel,
-              consumptionLevel: memberProfile.consumptionLevel,
-            }
-          : null,
-      },
-      isNew,
-    };
   }
 
   async refreshAccessToken(dto: WechatRefreshDto) {
@@ -180,23 +191,101 @@ export class AuthService {
     const mockMode = this.config.get<string>('WECHAT_MOCK_MODE', 'false') === 'true';
     if (mockMode) {
       this.logger.warn('WECHAT_MOCK_MODE=true，使用模拟 openid');
-      const mockOpenid = `mock_openid_${code.slice(-6)}`;
-      return { openid: mockOpenid, session_key: 'mock_session_key_32_bytes_long!!' };
+      return this.buildMockSession(code);
     }
 
     const appId = this.config.get<string>('WECHAT_APP_ID');
     const appSecret = this.config.get<string>('WECHAT_APP_SECRET');
-    const url = 'https://api.weixin.qq.com/sns/jscode2session';
-    const { data } = await axios.get(url, {
-      params: { appid: appId, secret: appSecret, js_code: code, grant_type: 'authorization_code' },
-    });
+    const allowDevFallback = this.shouldAllowWechatDevFallback();
 
-    if (data.errcode) {
-      this.logger.error(`code2Session 失败: ${data.errcode} ${data.errmsg}`);
-      throw new BusinessException(ErrorCode.WECHAT_PAY_API_ERROR, '微信登录失败');
+    if (!appId || !appSecret) {
+      if (allowDevFallback) {
+        this.logger.warn('开发环境未配置微信凭据，自动回退到 Mock 登录');
+        return this.buildMockSession(code);
+      }
+      throw new BusinessException(ErrorCode.WECHAT_PAY_API_ERROR, '微信登录配置缺失');
     }
 
-    return { openid: data.openid as string, session_key: data.session_key as string };
+    const url = 'https://api.weixin.qq.com/sns/jscode2session';
+    try {
+      const { data } = await axios.get(url, {
+        params: { appid: appId, secret: appSecret, js_code: code, grant_type: 'authorization_code' },
+      });
+
+      if (data.errcode) {
+        this.logger.error(`code2Session 失败: ${data.errcode} ${data.errmsg}`);
+        if (allowDevFallback) {
+          this.logger.warn('开发环境微信 code2Session 失败，自动回退到 Mock 登录');
+          return this.buildMockSession(code);
+        }
+        throw new BusinessException(ErrorCode.WECHAT_PAY_API_ERROR, '微信登录失败');
+      }
+
+      return { openid: data.openid as string, session_key: data.session_key as string };
+    } catch (error) {
+      if (allowDevFallback) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`开发环境微信登录请求异常，自动回退到 Mock 登录: ${errMsg}`);
+        return this.buildMockSession(code);
+      }
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      throw new BusinessException(ErrorCode.WECHAT_PAY_API_ERROR, '微信登录失败');
+    }
+  }
+
+  private shouldAllowWechatDevFallback(): boolean {
+    const explicit = this.config.get<string>('WECHAT_DEV_AUTO_MOCK', '');
+    if (explicit === 'true') return true;
+    if (explicit === 'false') return false;
+
+    const nodeEnv = this.config.get<string>('NODE_ENV', 'development');
+    return nodeEnv !== 'production';
+  }
+
+  private buildMockSession(code: string): { openid: string; session_key: string } {
+    const suffix = (code || 'default').slice(-6);
+    const mockOpenid = `mock_openid_${suffix}`;
+    return { openid: mockOpenid, session_key: 'mock_session_key_32_bytes_long!!' };
+  }
+
+  private buildDevLoginResponse() {
+    const accessToken = this.jwtService.sign(
+      { sub: '0', type: 'user', jti: 'dev_local', token_type: 'access' },
+      {
+        secret: this.config.get<string>('JWT_ACCESS_SECRET'),
+        expiresIn: this.config.get('JWT_ACCESS_EXPIRES_USER', '30m'),
+      },
+    );
+
+    const refreshToken = this.jwtService.sign(
+      { sub: '0', type: 'user', jti: 'dev_local', token_type: 'refresh' },
+      {
+        secret: this.config.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: this.config.get('JWT_REFRESH_EXPIRES', '7d'),
+      },
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: 1800,
+      user: {
+        id: '0',
+        nickname: '开发体验账号',
+        avatarUrl: null,
+        phoneMask: null,
+        memberProfile: {
+          balanceCents: '50000',
+          balanceYuan: 500,
+          rechargeLevel: 2,
+          consumptionLevel: 1,
+        },
+      },
+      isNew: false,
+      demoMode: true,
+    };
   }
 
   private async generateTokens(payload: JwtPayload, jti: string) {

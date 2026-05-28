@@ -3,6 +3,7 @@ require('../setup')
 const mockGetOrderList = jest.fn()
 const mockCancelOrder = jest.fn()
 const mockIsLoggedIn = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getOrderList: mockGetOrderList,
@@ -10,7 +11,7 @@ jest.mock('../../utils/api', () => ({
 }))
 jest.mock('../../utils/request', () => ({ isLoggedIn: mockIsLoggedIn }))
 
-global.getApp = () => ({ globalData: {} })
+global.getApp = () => ({ globalData: {}, promptLogin: mockPromptLogin })
 
 describe('pages/orders/index', () => {
   let page
@@ -22,6 +23,7 @@ describe('pages/orders/index', () => {
     jest.clearAllMocks()
     page.setData = jest.fn()
     mockIsLoggedIn.mockReturnValue(true)
+    mockPromptLogin.mockResolvedValue(false)
     mockGetOrderList.mockResolvedValue({
       list: [
         { id: '1', orderNo: 'GC001', status: 'pending', totalYuan: '358.00',
@@ -43,14 +45,14 @@ describe('pages/orders/index', () => {
   })
 
   describe('onLoad', () => {
-    it('未登录时提示并返回', () => {
+    it('未登录时拉起登录提示并返回', async () => {
       mockIsLoggedIn.mockReturnValue(false)
-      page.onLoad()
-      expect(wx.showToast).toHaveBeenCalled()
+      await page.onLoad()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '查看订单前请先登录' })
     })
 
-    it('已登录时拉取订单', () => {
-      page.onLoad()
+    it('已登录时拉取订单', async () => {
+      await page.onLoad()
       expect(mockGetOrderList).toHaveBeenCalled()
     })
   })

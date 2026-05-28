@@ -3,6 +3,7 @@ require('../setup')
 const mockGetMemberTransactions = jest.fn()
 const mockGetMemberProfile = jest.fn()
 const mockIsLoggedIn = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getMemberTransactions: mockGetMemberTransactions,
@@ -10,7 +11,7 @@ jest.mock('../../utils/api', () => ({
 }))
 jest.mock('../../utils/request', () => ({ isLoggedIn: mockIsLoggedIn }))
 
-global.getApp = () => ({ globalData: {} })
+global.getApp = () => ({ globalData: {}, promptLogin: mockPromptLogin })
 
 describe('pages/member-transactions/index', () => {
   let page
@@ -22,6 +23,7 @@ describe('pages/member-transactions/index', () => {
     jest.clearAllMocks()
     page.setData = jest.fn()
     mockIsLoggedIn.mockReturnValue(true)
+    mockPromptLogin.mockResolvedValue(false)
     mockGetMemberProfile.mockResolvedValue({ balance: 5000 })
     mockGetMemberTransactions.mockResolvedValue({
       list: [
@@ -44,14 +46,14 @@ describe('pages/member-transactions/index', () => {
   })
 
   describe('onLoad', () => {
-    it('未登录时提示并返回', () => {
+    it('未登录时拉起登录提示并返回', async () => {
       mockIsLoggedIn.mockReturnValue(false)
-      page.onLoad()
-      expect(wx.showToast).toHaveBeenCalled()
+      await page.onLoad()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '查看余额流水前请先登录' })
     })
 
-    it('已登录时拉取余额和交易', () => {
-      page.onLoad()
+    it('已登录时拉取余额和交易', async () => {
+      await page.onLoad()
       expect(mockGetMemberProfile).toHaveBeenCalled()
       expect(mockGetMemberTransactions).toHaveBeenCalled()
     })

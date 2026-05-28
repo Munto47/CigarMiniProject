@@ -140,7 +140,7 @@ pnpm dev
 
 使用 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) 打开 `Cigar/` 目录。
 
-AppID：`wxbfe66bae768f421d`
+AppID：`wx8ce906f76c5c88ce`
 
 > 小程序 API 默认请求后端地址，开发阶段可在开发者工具中开启「不校验合法域名」。
 

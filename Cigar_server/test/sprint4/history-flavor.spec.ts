@@ -54,32 +54,41 @@ describe('HistoryService (unit)', () => {
 describe('FlavorService (unit)', () => {
   let service: FlavorService;
   let prisma: any;
+  let configService: { get: jest.Mock };
+  let mockAsrService: { recognizeSentence: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
       flavorTag: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 1n, name: '木香', category: 'wood', enabled: true },
-          { id: 2n, name: '皮革', category: 'leather', enabled: true },
-          { id: 3n, name: '甜感', category: 'sweet', enabled: true },
+          { id: 1n, name: '木质烟草', category: 'wood', enabled: true, aiWeight: 0.9 },
+          { id: 2n, name: '皮革木桶', category: 'leather', enabled: true, aiWeight: 0.7 },
+          { id: 3n, name: '奶油丝滑', category: 'sweet', enabled: true, aiWeight: 0.8 },
+          { id: 4n, name: '咖啡可可', category: 'roast', enabled: true, aiWeight: 0.85 },
         ]),
       },
       cigarTag: {
         findMany: jest.fn().mockResolvedValue([
-          { tag: { id: 1n, name: '木香', category: 'wood', enabled: true } },
+          { tag: { id: 1n, name: '木质烟草', category: 'wood', enabled: true, aiWeight: 0.9 } },
         ]),
       },
     };
 
-    const mockAsrService = {
+    mockAsrService = {
       recognizeSentence: jest.fn(),
+    };
+    configService = {
+      get: jest.fn((key: string, defaultValue?: string) => {
+        if (key === 'VOICE_ASR_MOCK') return 'true';
+        return defaultValue;
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FlavorService,
         { provide: PrismaService, useValue: prisma },
-        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('true') } },
+        { provide: ConfigService, useValue: configService },
         { provide: AsrService, useValue: mockAsrService },
       ],
     }).compile();
@@ -97,8 +106,50 @@ describe('FlavorService (unit)', () => {
 
   it('获取风味标签列表', async () => {
     const result = await service.getFlavorTags();
-    expect(result.tags).toHaveLength(3);
-    expect(result.categories).toEqual(['wood', 'leather', 'sweet']);
-    expect(result.tags[0].name).toBe('木香');
+    expect(result.tags).toHaveLength(4);
+    expect(result.categories).toEqual(expect.arrayContaining(['wood', 'leather', 'sweet', 'roast']));
+    expect(result.tags[0].name).toBe('木质烟草');
+  });
+
+  it('文字模式支持同义词和模糊纠错', async () => {
+    const result = await service.analyzeVoice({
+      text: '这支雪茄有明显雪松木、奶香和咖啡豆风味，尾段带一点皮格感。',
+    });
+
+    expect(result.voiceText).toContain('雪松木');
+    expect(result.flavorTags).toEqual(
+      expect.arrayContaining(['木质烟草', '奶油丝滑', '咖啡可可', '皮革木桶']),
+    );
+    expect(result.flavorScores['木质烟草']).toBeGreaterThanOrEqual(60);
+    expect(result.flavorScores['皮革木桶']).toBeGreaterThanOrEqual(60);
+  });
+
+  it('开发环境数据库不可用时仍可返回本地风味结果', async () => {
+    prisma.flavorTag.findMany.mockRejectedValue(new Error('db down'));
+
+    const result = await service.analyzeVoice({
+      text: '雪松木、奶香、咖啡豆，还有一点胡椒感。',
+    });
+
+    expect(result.flavorTags.length).toBeGreaterThan(0);
+    expect(result.flavorTags).toEqual(
+      expect.arrayContaining(['木质烟草', '奶油丝滑', '咖啡可可']),
+    );
+  });
+
+  it('开发环境 ASR 失败时语音分析回退到本地 mock 结果', async () => {
+    configService.get.mockImplementation((key: string, defaultValue?: string) => {
+      if (key === 'VOICE_ASR_MOCK') return 'false';
+      return defaultValue;
+    });
+    mockAsrService.recognizeSentence.mockRejectedValue(new Error('asr down'));
+
+    const result = await service.analyzeVoice({
+      audioBase64: 'invalid-audio',
+      audioFormat: 'mp3',
+    });
+
+    expect(result.flavorTags.length).toBeGreaterThan(0);
+    expect(result.voiceText).toContain('模拟识别到的风味关键词');
   });
 });

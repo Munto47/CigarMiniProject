@@ -107,7 +107,7 @@ Page({
 
   async topup() {
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
+      getApp().promptLogin({ message: '充值前请先登录' })
       return
     }
 
@@ -165,12 +165,15 @@ Page({
   },
 
   doLogin() {
-    getApp()._autoLogin().then(() => this._loadData()).catch(() => {})
+    getApp().promptLogin({
+      message: '登录后可查看会员权益与余额',
+      onSuccess: () => this._loadData(),
+    })
   },
 
   viewDetail() {
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
+      getApp().promptLogin({ message: '查看余额流水前请先登录' })
       return
     }
     wx.navigateTo({ url: '/pages/member-transactions/index' })
@@ -184,7 +187,7 @@ Page({
     switch (item.handler) {
     case 'orders':
       if (!isLoggedIn()) {
-        wx.showToast({ title: '请先登录', icon: 'none' })
+        getApp().promptLogin({ message: '查看订单前请先登录' })
         return
       }
       // 保持底部导航栏选中状态为"会员中心"（tab 4）

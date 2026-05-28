@@ -163,7 +163,7 @@ Page({
     wx.vibrateShort({ type: 'light' })
 
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none', duration: 2000 })
+      this.setData({ loginModalVisible: true })
       return
     }
 

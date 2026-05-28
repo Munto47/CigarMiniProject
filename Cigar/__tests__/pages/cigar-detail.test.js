@@ -5,6 +5,7 @@ const mockGetCigarReviews = jest.fn()
 const mockAddToCart = jest.fn()
 const mockSubmitReview = jest.fn()
 const mockIsLoggedIn = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getCigarDetail: mockGetCigarDetail,
@@ -14,7 +15,7 @@ jest.mock('../../utils/api', () => ({
 }))
 jest.mock('../../utils/request', () => ({ isLoggedIn: mockIsLoggedIn }))
 
-global.getApp = () => ({ globalData: {} })
+global.getApp = () => ({ globalData: {}, promptLogin: mockPromptLogin, updateCartBadge: jest.fn() })
 
 describe('pages/cigar-detail/cigar-detail', () => {
   let page
@@ -26,6 +27,7 @@ describe('pages/cigar-detail/cigar-detail', () => {
     jest.clearAllMocks()
     page.setData = jest.fn()
     mockIsLoggedIn.mockReturnValue(false)
+    mockPromptLogin.mockResolvedValue(false)
     mockGetCigarDetail.mockResolvedValue({
       id: 1, name: '高希霸', tags: ['木质', '烟草'], scores: { 木香: 80, 烟草: 70 },
       price: 358, rating: 5,
@@ -100,20 +102,20 @@ describe('pages/cigar-detail/cigar-detail', () => {
   })
 
   describe('addToCart', () => {
-    it('未登录时提示', async () => {
+    it('未登录时拉起登录提示', async () => {
       mockIsLoggedIn.mockReturnValue(false)
       await page.addToCart()
-      expect(wx.showToast).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '加入购物车前请先登录' })
     })
 
     it('登录后加入购物车', async () => {
       mockIsLoggedIn.mockReturnValue(true)
-      page.data.cigar = { id: 5 }
+      page.data.cigar = { id: 5, name: '高希霸', price: 358, thumbUrl: '/a.jpg' }
       mockAddToCart.mockResolvedValue({})
       await page.addToCart()
-      expect(mockAddToCart).toHaveBeenCalledWith({
+      expect(mockAddToCart).toHaveBeenCalledWith(expect.objectContaining({
         productType: 'cigar', productId: 5, spec: '单支', qty: 1
-      })
+      }))
     })
   })
 
@@ -121,7 +123,7 @@ describe('pages/cigar-detail/cigar-detail', () => {
     it('未登录时不可打开评价弹窗', () => {
       mockIsLoggedIn.mockReturnValue(false)
       page.openReviewModal()
-      expect(wx.showToast).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '发表评价前请先登录' })
     })
 
     it('登录后打开评价弹窗', () => {

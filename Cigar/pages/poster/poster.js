@@ -74,12 +74,25 @@ Page({
     }
   },
 
+  async _ensureLogin(message = '使用 AI 功能前请先登录') {
+    if (isLoggedIn()) return true
+    const app = getApp()
+    if (app && typeof app.promptLogin === 'function') {
+      return app.promptLogin({ message })
+    }
+    wx.showToast({ title: '请先登录', icon: 'none' })
+    return false
+  },
+
   async onRecordStop(e) {
     const { filePath } = e.detail
     if (!filePath) {
       wx.showToast({ title: '录音失败', icon: 'none' })
       return
     }
+
+    const loggedIn = await this._ensureLogin('使用 AI 语音识别前请先登录')
+    if (!loggedIn) return
 
     this.setData({ analyzing: true })
     wx.showLoading({ title: 'AI 语音识别中...', mask: true })
@@ -129,6 +142,9 @@ Page({
 
   async analyzeText() {
     const { inputText } = this.data
+
+    const loggedIn = await this._ensureLogin('使用 AI 识别前请先登录')
+    if (!loggedIn) return
 
     // Mock 模式：随机模拟分析
     if (MOCK_VOICE_ANALYSIS) {
@@ -204,6 +220,7 @@ Page({
 
   async _autoSavePoster() {
     if (this.data.posterSaved) return
+    if (!isLoggedIn()) return
     const app = getApp()
     if (app.globalData.posterFlavorSaved) {
       app.globalData.posterFlavorSaved = null
@@ -213,7 +230,6 @@ Page({
     try {
       await createPoster({
         cigarId: this.data.cigarId ? Number(this.data.cigarId) : undefined,
-        cigarName: this.data.cigarName || undefined,
         flavorTags: this.data.flavors,
         flavorScores: this.data.flavorScores || {},
         voiceText: this.data.transcript,
@@ -253,7 +269,7 @@ Page({
       ctx.scale(dpr, dpr)
 
       const logoImg = canvas.createImage()
-      logoImg.src = '/images/img_with_word.png'
+      logoImg.src = '../../images/img_with_word.png'
       logoImg.onload = () => this._render(ctx, canvasWidth, logoImg)
       logoImg.onerror = () => this._render(ctx, canvasWidth, null)
     })
@@ -407,6 +423,8 @@ Page({
 
   async addToTasting() {
     if (this.data.tastingAdded) return
+    const loggedIn = await this._ensureLogin('保存品鉴记录前请先登录')
+    if (!loggedIn) return
     const { cigarId, cigarName, flavors, transcript } = this.data
     this.setData({ tastingAdded: true })
     try {

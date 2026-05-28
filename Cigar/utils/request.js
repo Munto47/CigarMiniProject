@@ -7,17 +7,19 @@
 // 根据运行环境自动切换后端地址（develop/trial → 本地，release → 生产）
 const _env = typeof __wxConfig !== 'undefined' ? __wxConfig.envVersion : 'develop'
 const BASE_URL = _env === 'release'
-  ? 'https://api.cigarpro.com/api'
+  ? 'https://cigar.ruimacode.cn/api'
   : 'http://localhost:3000/api'
 
 // Token 存储 key
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_INFO_KEY = 'userInfo'
+const DEMO_ACCESS_TOKEN = 'demo_local'
 
 // 是否正在刷新 token（防止并发刷新）
 let refreshing = false
 let refreshQueue = []
+let loginPrompting = false
 
 /**
  * 获取存储的 accessToken
@@ -70,7 +72,32 @@ function getUserInfo() {
  * 检查是否已登录
  */
 function isLoggedIn() {
-  return !!getAccessToken()
+  const accessToken = getAccessToken()
+  return !!accessToken && accessToken !== DEMO_ACCESS_TOKEN
+}
+
+function promptLogin(message = '请先登录后继续操作') {
+  if (loginPrompting) return
+
+  loginPrompting = true
+
+  const done = () => {
+    loginPrompting = false
+  }
+
+  const app = typeof getApp === 'function' ? getApp() : null
+  if (app && typeof app.promptLogin === 'function') {
+    Promise.resolve(app.promptLogin({ message }))
+      .finally(done)
+    return
+  }
+
+  wx.showModal({
+    title: '登录提示',
+    content: message,
+    showCancel: false,
+    complete: done,
+  })
 }
 
 /**
@@ -169,23 +196,25 @@ function request(options = {}) {
                   .then(() => {
                     refreshing = false
                     // 重试队列中的请求
-                    refreshQueue.forEach(cb => cb())
+                    refreshQueue.forEach(task => task.retry())
                     refreshQueue = []
                     // 重试当前请求
                     doRequest()
                   })
                   .catch(() => {
+                    const authError = new Error(message || '未登录')
                     refreshing = false
+                    refreshQueue.forEach(task => task.reject(authError))
                     refreshQueue = []
                     clearTokens()
-                    if (!silent) wx.showToast({ title: '登录已过期，请重新进入', icon: 'none' })
-                    reject(new Error(message || '未登录'))
+                    if (!silent) promptLogin('登录已过期，请重新登录')
+                    reject(authError)
                   })
               } else if (refreshing) {
                 // 加入等待队列
-                refreshQueue.push(() => doRequest())
+                refreshQueue.push({ retry: doRequest, reject })
               } else {
-                clearTokens()
+                if (needAuth) clearTokens()
                 reject(new Error(message || '未登录'))
               }
             } else {
@@ -199,19 +228,21 @@ function request(options = {}) {
               tryRefreshToken()
                 .then(() => {
                   refreshing = false
-                  refreshQueue.forEach(cb => cb())
+                  refreshQueue.forEach(task => task.retry())
                   refreshQueue = []
                   doRequest()
                 })
                 .catch(() => {
+                  const authError = new Error('未登录')
                   refreshing = false
+                  refreshQueue.forEach(task => task.reject(authError))
                   refreshQueue = []
                   clearTokens()
-                  if (!silent) wx.showToast({ title: '请先登录', icon: 'none' })
-                  reject(new Error('未登录'))
+                  if (!silent) promptLogin('请先登录后继续操作')
+                  reject(authError)
                 })
             } else {
-              refreshQueue.push(() => doRequest())
+              refreshQueue.push({ retry: doRequest, reject })
             }
           } else {
             const errMsg = (res.data && (res.data.message || res.data.error)) || `服务器异常(${res.statusCode})`
@@ -270,4 +301,5 @@ module.exports = {
   saveUserInfo,
   getUserInfo,
   isLoggedIn,
+  promptLogin,
 }

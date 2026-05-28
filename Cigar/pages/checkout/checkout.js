@@ -31,9 +31,11 @@ Page({
 
   async onLoad() {
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
-      setTimeout(() => wx.navigateBack(), 1500)
-      return
+      const loggedIn = await getApp().promptLogin({ message: '结算前请先登录' })
+      if (!loggedIn) {
+        setTimeout(() => wx.navigateBack(), 1500)
+        return
+      }
     }
 
     // 生成或恢复幂等 key（与购物车绑定，防止重复下单）

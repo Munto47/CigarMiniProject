@@ -421,82 +421,45 @@ describe('api.js', () => {
 
   // ==================== analyzeVoice ====================
   describe('Flavor — analyzeVoice', () => {
-    beforeEach(() => {
-      global.wx.uploadFile = jest.fn()
-    })
+      it('应发送包含音频数据的 POST 请求', async () => {
+        const mockRequest = require('../../utils/request').post
+        mockRequest.mockResolvedValue({ id: 1 })
 
-    it('应调用 wx.uploadFile 上传语音文件', async () => {
-      global.wx.uploadFile.mockImplementation((options) => {
-        options.success({
-          statusCode: 200,
-          data: JSON.stringify({ code: 0, data: { flavors: ['木质', '可可'] } }),
-        })
+        const result = await api.analyzeVoice({ cigarId: 1, audioBase64: 'mock_base64', audioFormat: 'mp3' })
+        expect(mockRequest).toHaveBeenCalledWith(
+          '/flavor/analyze-voice',
+          expect.objectContaining({
+            cigarId: 1,
+            audioBase64: 'mock_base64',
+            audioFormat: 'mp3',
+            text: undefined
+          })
+        )
+        expect(result).toEqual({ id: 1 })
       })
 
-      const result = await api.analyzeVoice(1, '/tmp/voice.mp3')
-      expect(wx.uploadFile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          url: expect.stringContaining('/flavor/analyze-voice'),
-          filePath: '/tmp/voice.mp3',
-          name: 'voice',
-          formData: { cigarId: '1' },
-        })
-      )
-      expect(result).toEqual({ flavors: ['木质', '可可'] })
-    })
+      it('cigarId 为 falsy 时不上传 cigarId', async () => {
+        const mockRequest = require('../../utils/request').post
+        mockRequest.mockResolvedValue({ id: 1 })
 
-    it('cigarId 为 falsy 时不上传 cigarId', async () => {
-      global.wx.uploadFile.mockImplementation((options) => {
-        options.success({
-          statusCode: 200,
-          data: JSON.stringify({ code: 0, data: {} }),
-        })
+        await api.analyzeVoice({ audioBase64: 'mock_base64', audioFormat: 'mp3' })
+        expect(mockRequest).toHaveBeenCalledWith(
+          '/flavor/analyze-voice',
+          expect.objectContaining({
+            cigarId: undefined
+          })
+        )
       })
 
-      await api.analyzeVoice(null, '/tmp/voice.mp3')
-      expect(wx.uploadFile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          formData: {},
-        })
-      )
-    })
+      it('服务器返回非 0 code 时应 reject', async () => {
+        const mockRequest = require('../../utils/request').post
+        mockRequest.mockRejectedValue(new Error('分析失败'))
 
-    it('服务器返回非 0 code 时应 reject', async () => {
-      global.wx.uploadFile.mockImplementation((options) => {
-        options.success({
-          statusCode: 200,
-          data: JSON.stringify({ code: 5000, message: '分析失败' }),
-        })
+        await expect(
+          api.analyzeVoice({ cigarId: 1, audioBase64: 'mock_base64' })
+        ).rejects.toThrow('分析失败')
       })
-
-      await expect(
-        api.analyzeVoice(1, '/tmp/voice.mp3')
-      ).rejects.toThrow('分析失败')
     })
-
-    it('响应 JSON 解析失败时应 reject', async () => {
-      global.wx.uploadFile.mockImplementation((options) => {
-        options.success({
-          statusCode: 200,
-          data: 'invalid json {{{',
-        })
-      })
-
-      await expect(
-        api.analyzeVoice(1, '/tmp/voice.mp3')
-      ).rejects.toThrow('解析响应失败')
-    })
-
-    it('上传网络失败时应 reject', async () => {
-      global.wx.uploadFile.mockImplementation((options) => {
-        options.fail({ errMsg: 'uploadFile:fail' })
-      })
-
-      await expect(
-        api.analyzeVoice(1, '/tmp/voice.mp3')
-      ).rejects.toEqual({ errMsg: 'uploadFile:fail' })
-    })
-  })
 
   // ==================== 错误路径 ====================
   describe('Error Paths — 网络异常', () => {

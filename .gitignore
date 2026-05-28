@@ -60,6 +60,7 @@ coverage/
 build/
 *.tgz
 *.tar.gz
+*.zip
 
 # ===== 临时目录 =====
 tmp/

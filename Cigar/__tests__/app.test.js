@@ -14,11 +14,13 @@ jest.mock('../utils/api', () => ({
 const mockGetAccessToken = jest.fn()
 const mockSaveTokens = jest.fn()
 const mockSaveUserInfo = jest.fn()
+const mockClearTokens = jest.fn()
 
 jest.mock('../utils/request', () => ({
   getAccessToken: mockGetAccessToken,
   saveTokens: mockSaveTokens,
   saveUserInfo: mockSaveUserInfo,
+  clearTokens: mockClearTokens,
 }))
 
 // 模拟 getCurrentPages
@@ -39,6 +41,8 @@ describe('app.js', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockPages.length = 0
+    appOptions._loginPromise = null
+    appOptions._loginPromptVisible = false
   })
 
   it('应定义 globalData', () => {
@@ -81,7 +85,7 @@ describe('app.js', () => {
       expect(mockSaveUserInfo).toHaveBeenCalledWith({ nickName: 'TestUser' })
     })
 
-    it('wechatLogin 失败时静默处理', async () => {
+    it('wechatLogin 失败时清理登录态并 reject', async () => {
       mockGetAccessToken.mockReturnValue('')
       mockWechatLogin.mockRejectedValue(new Error('登录失败'))
 
@@ -89,19 +93,19 @@ describe('app.js', () => {
         options.success({ code: 'bad-code' })
       })
 
-      // 不应抛出异常
-      await expect(appOptions._autoLogin()).resolves.toBeUndefined()
+      await expect(appOptions._autoLogin()).rejects.toThrow('登录失败')
+      expect(mockClearTokens).toHaveBeenCalled()
     })
 
-    it('wx.login 微信层面失败时静默处理', async () => {
+    it('wx.login 微信层面失败时清理登录态并 reject', async () => {
       mockGetAccessToken.mockReturnValue('')
 
       wx.login = jest.fn((options) => {
         if (options.fail) options.fail({ errMsg: 'login:fail' })
       })
 
-      // 不应抛出异常
-      await expect(appOptions._autoLogin()).resolves.toBeUndefined()
+      await expect(appOptions._autoLogin()).rejects.toEqual({ errMsg: 'login:fail' })
+      expect(mockClearTokens).toHaveBeenCalled()
     })
 
     it('login 返回无 userInfo 时只保存 token', async () => {
@@ -119,6 +123,29 @@ describe('app.js', () => {
 
       expect(mockSaveTokens).toHaveBeenCalledWith('at-only', 'rt-only')
       expect(mockSaveUserInfo).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('promptLogin', () => {
+    it('确认后触发自动登录', async () => {
+      const autoLoginSpy = jest.spyOn(appOptions, '_autoLogin').mockResolvedValue({})
+      wx.showModal = jest.fn((options) => {
+        options.success({ confirm: true, cancel: false })
+      })
+
+      const result = await appOptions.promptLogin({ message: '请登录' })
+
+      expect(result).toBe(true)
+      expect(autoLoginSpy).toHaveBeenCalledWith({ silent: false, force: true })
+      autoLoginSpy.mockRestore()
+    })
+
+    it('取消时返回 false', async () => {
+      wx.showModal = jest.fn((options) => {
+        options.success({ confirm: false, cancel: true })
+      })
+
+      await expect(appOptions.promptLogin({ message: '请登录' })).resolves.toBe(false)
     })
   })
 

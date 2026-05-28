@@ -215,46 +215,60 @@ describe('6.3 Cigars — 雪茄商品模块', () => {
   })
 
   describe('GET /cigars/:id', () => {
-    it('应将分（cents）转为元（yuan）', async () => {
-      mock('get').mockResolvedValue({
-        id: '1', name: '雪茄', memberPriceCents: '35800',
-        tags: [{ name: '木质' }], flavorScores: { 木香: 80 },
+      beforeEach(() => {
+        global.wx = global.wx || {}
+        global.wx.request = jest.fn()
       })
-      const result = await api.getCigarDetail(1)
-      expect(result.price).toBe(358)
-      expect(result.priceCents).toBe('35800')
-    })
 
-    it('应正确转换 tags 数组', async () => {
-      mock('get').mockResolvedValue({
-        id: '1', name: '雪茄',
-        tags: [{ name: '木质' }, { name: '可可' }],
+      it('应将分（cents）转为元（yuan）', async () => {
+        mock('get').mockResolvedValue({
+          id: 1, name: '雪茄', priceCents: 1500
+        })
+        const result = await api.getCigarDetail(1)
+        expect(result.price).toBe(15)
       })
-      const result = await api.getCigarDetail(1)
-      expect(result.tags).toEqual(['木质', '可可'])
-    })
 
-    it('segments 为 JSONB 对象时应转换为数组', async () => {
-      mock('get').mockResolvedValue({
-        id: '1', name: '雪茄',
-        segments: { flavorStart: '清淡', flavorMid: '浓郁', flavorEnd: '回甘' },
+      it('获取成功应从 flavorStart/Mid/End 提取为 segments 数组', async () => {
+        const mockRequest = require('../../utils/request').get
+        mockRequest.mockResolvedValue({
+          id: 1,
+          name: '雪茄',
+          flavorStart: '清淡',
+          flavorMid: '浓郁',
+          flavorEnd: '回甘'
+        })
+        const result = await api.getCigarDetail(1)
+        expect(result.segments).toEqual([
+          { name: '前段', desc: '清淡' },
+          { name: '中段', desc: '浓郁' },
+          { name: '尾段', desc: '回甘' },
+        ])
       })
-      const result = await api.getCigarDetail(1)
-      expect(result.segments).toEqual([
-        { name: '前段', desc: '清淡' },
-        { name: '中段', desc: '浓郁' },
-        { name: '尾段', desc: '回甘' },
-      ])
-    })
 
-    it('segments 已是数组时应保持不变', async () => {
-      mock('get').mockResolvedValue({
-        id: '1', name: '雪茄',
-        segments: [{ name: '前段', desc: '清淡' }],
+      it('缺少某个阶段时，segments 中不包含该阶段', async () => {
+        const mockRequest = require('../../utils/request').get
+        mockRequest.mockResolvedValue({
+          id: 1,
+          name: '雪茄',
+          flavorStart: '清淡',
+          flavorEnd: '回甘'
+        })
+        const result = await api.getCigarDetail(1)
+        expect(result.segments).toEqual([
+          { name: '前段', desc: '清淡' },
+          { name: '尾段', desc: '回甘' },
+        ])
       })
-      const result = await api.getCigarDetail(1)
-      expect(result.segments).toEqual([{ name: '前段', desc: '清淡' }])
-    })
+
+      it('都没有时，segments 为空数组', async () => {
+        const mockRequest = require('../../utils/request').get
+        mockRequest.mockResolvedValue({
+          id: 1,
+          name: '雪茄',
+        })
+        const result = await api.getCigarDetail(1)
+        expect(result.segments).toEqual([])
+      })
 
     it('不存在的雪茄应返回 null', async () => {
       mock('get').mockResolvedValue(null)
@@ -360,34 +374,38 @@ describe('6.5 Flavor & Posters — 风味/海报模块', () => {
 
   describe('POST /flavor/analyze-voice', () => {
     beforeEach(() => {
-      global.wx.uploadFile = jest.fn()
+      global.wx = global.wx || {}
+      global.wx.request = jest.fn()
     })
 
-    it('应使用 multipart/form-data 上传音频文件', async () => {
-      global.wx.uploadFile.mockImplementation((opts) => {
-        opts.success({ statusCode: 200, data: JSON.stringify({ code: 0, data: { flavors: ['木'] } }) })
-      })
-      await api.analyzeVoice(1, '/tmp/rec.mp3')
-      expect(wx.uploadFile).toHaveBeenCalledWith(expect.objectContaining({
-        filePath: '/tmp/rec.mp3',
-        name: 'voice',
-        formData: { cigarId: '1' },
-      }))
+    it('应发送包含音频数据的 POST 请求', async () => {
+      mock('post').mockResolvedValue({ id: 1 })
+      await api.analyzeVoice({ cigarId: 1, audioBase64: 'mock_base64', audioFormat: 'mp3' })
+      expect(mock('post')).toHaveBeenCalledWith(
+        '/flavor/analyze-voice',
+        expect.objectContaining({
+          audioBase64: 'mock_base64',
+          audioFormat: 'mp3',
+          cigarId: 1,
+          text: undefined
+        })
+      )
     })
 
-    it('无 cigarId 时 formData 为空', async () => {
-      global.wx.uploadFile.mockImplementation((opts) => {
-        opts.success({ statusCode: 200, data: JSON.stringify({ code: 0, data: {} }) })
-      })
-      await api.analyzeVoice(null, '/tmp/rec.mp3')
-      expect(wx.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ formData: {} }))
+    it('无 cigarId 时 data 中不包含', async () => {
+      mock('post').mockResolvedValue({ id: 1 })
+      await api.analyzeVoice({ audioBase64: 'mock_base64' })
+      expect(mock('post')).toHaveBeenCalledWith(
+        '/flavor/analyze-voice',
+        expect.objectContaining({
+          cigarId: undefined
+        })
+      )
     })
 
     it('code != 0 时应 reject', async () => {
-      global.wx.uploadFile.mockImplementation((opts) => {
-        opts.success({ statusCode: 200, data: JSON.stringify({ code: 5000, message: '分析失败' }) })
-      })
-      await expect(api.analyzeVoice(1, '/tmp/rec.mp3')).rejects.toThrow('分析失败')
+      mock('post').mockRejectedValue(new Error('分析失败'))
+      await expect(api.analyzeVoice({ cigarId: 1, audioBase64: 'mock_base64' })).rejects.toThrow('分析失败')
     })
   })
 

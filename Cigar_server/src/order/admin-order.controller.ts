@@ -216,7 +216,7 @@ export class AdminOrderController {
   }
 
   @Post(':id/refund')
-  @ApiOperation({ summary: '发起退款' })
+  @ApiOperation({ summary: '发起退款（业务策略：不开放，默认 403；如需启用设 REFUND_ENABLED=true）' })
   @ApiHeader({ name: 'Idempotency-Key', required: true, description: '幂等键' })
   @RequirePermissions('order:refund')
   async refund(
@@ -226,6 +226,10 @@ export class AdminOrderController {
     @Headers('idempotency-key') idempotencyKey: string,
     @Req() req: any,
   ) {
+    // 业务策略：山羊雪茄俱乐部不开放退款。如需临时开启，设 REFUND_ENABLED=true
+    if (process.env.REFUND_ENABLED !== 'true') {
+      throw new BusinessException(ErrorCode.FORBIDDEN, '当前业务策略不开放退款');
+    }
     if (!idempotencyKey) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED, '缺少 Idempotency-Key 请求头');
     }

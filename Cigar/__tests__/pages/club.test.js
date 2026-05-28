@@ -9,6 +9,7 @@ const mockGetStoreInfo = jest.fn()
 const mockRecharge = jest.fn()
 const mockIsLoggedIn = jest.fn()
 const mockClearTokens = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getMemberProfile: mockGetMemberProfile,
@@ -26,6 +27,7 @@ const mockAutoLogin = jest.fn(() => Promise.resolve())
 const mockApp = {
   globalData: { selectedTab: -1 },
   _autoLogin: mockAutoLogin,
+  promptLogin: mockPromptLogin,
 }
 global.getApp = () => mockApp
 
@@ -43,6 +45,7 @@ describe('pages/club/club', () => {
     jest.clearAllMocks()
     page.setData = jest.fn()
     mockIsLoggedIn.mockReturnValue(true)
+    mockPromptLogin.mockResolvedValue(true)
     mockGetMemberProfile.mockResolvedValue({
       name: 'VIP用户',
       balance: 5000,
@@ -119,10 +122,10 @@ describe('pages/club/club', () => {
   })
 
   describe('topup', () => {
-    it('未登录时提示', async () => {
+    it('未登录时拉起登录提示', async () => {
       mockIsLoggedIn.mockReturnValue(false)
       await page.topup()
-      expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining('登录') }))
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '充值前请先登录' })
     })
 
     it('成功加载充值档位并拉起选择', async () => {
@@ -153,10 +156,10 @@ describe('pages/club/club', () => {
   })
 
   describe('onGridTap', () => {
-    it('orders 未登录时提示', () => {
+    it('orders 未登录时拉起登录提示', () => {
       mockIsLoggedIn.mockReturnValue(false)
       page.onGridTap({ currentTarget: { dataset: { index: 0 } } })
-      expect(wx.showToast).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '查看订单前请先登录' })
     })
 
     it('orders 已登录时跳转', () => {
@@ -207,10 +210,10 @@ describe('pages/club/club', () => {
   })
 
   describe('viewDetail', () => {
-    it('未登录时提示', () => {
+    it('未登录时拉起登录提示', () => {
       mockIsLoggedIn.mockReturnValue(false)
       page.viewDetail()
-      expect(wx.showToast).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '查看余额流水前请先登录' })
     })
 
     it('已登录时跳转交易记录', () => {
@@ -222,9 +225,16 @@ describe('pages/club/club', () => {
 
   describe('doLogin', () => {
     it('登录后刷新数据', async () => {
+      mockPromptLogin.mockImplementation(({ onSuccess }) => {
+        if (typeof onSuccess === 'function') onSuccess()
+        return Promise.resolve(true)
+      })
       const spy = jest.spyOn(page, '_loadData').mockImplementation(() => {})
       await page.doLogin()
-      expect(mockAutoLogin).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({
+        message: '登录后可查看会员权益与余额',
+        onSuccess: expect.any(Function),
+      })
       expect(spy).toHaveBeenCalled()
       spy.mockRestore()
     })

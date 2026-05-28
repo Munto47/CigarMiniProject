@@ -8,6 +8,7 @@ const mockUpdateCartQty = jest.fn()
 const mockRemoveCartItem = jest.fn()
 const mockGetCartCount = jest.fn()
 const mockIsLoggedIn = jest.fn()
+const mockPromptLogin = jest.fn()
 
 jest.mock('../../utils/api', () => ({
   getCart: mockGetCart,
@@ -26,6 +27,7 @@ const mockApp = {
   globalData: { selectedTab: -1, cartCount: 0 },
   updateCartBadge: mockUpdateCartBadge,
   _autoLogin: mockAutoLogin,
+  promptLogin: mockPromptLogin,
 }
 global.getApp = () => mockApp
 
@@ -51,6 +53,7 @@ describe('pages/cart/cart', () => {
     })
     mockGetCartCount.mockResolvedValue(3)
     mockIsLoggedIn.mockReturnValue(true)
+    mockPromptLogin.mockResolvedValue(true)
     mockApp.globalData.cartCount = 0
     page.data = {
       items: [],
@@ -178,11 +181,11 @@ describe('pages/cart/cart', () => {
       expect(wx.navigateTo).not.toHaveBeenCalled()
     })
 
-    it('未登录时提示', () => {
+    it('未登录时拉起登录提示', () => {
       page.data.isEmpty = false
       mockIsLoggedIn.mockReturnValue(false)
       page.checkout()
-      expect(wx.showToast).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({ message: '结算前请先登录' })
     })
 
     it('有商品且已登录时跳转结账页', () => {
@@ -195,10 +198,16 @@ describe('pages/cart/cart', () => {
 
   describe('doLogin', () => {
     it('登录成功后重新加载购物车', async () => {
-      mockAutoLogin.mockResolvedValue(undefined)
+      mockPromptLogin.mockImplementation(({ onSuccess }) => {
+        if (typeof onSuccess === 'function') onSuccess()
+        return Promise.resolve(true)
+      })
       const spy = jest.spyOn(page, '_loadCart').mockImplementation(() => {})
       await page.doLogin()
-      expect(mockAutoLogin).toHaveBeenCalled()
+      expect(mockPromptLogin).toHaveBeenCalledWith({
+        message: '登录后可查看购物车',
+        onSuccess: expect.any(Function),
+      })
       expect(spy).toHaveBeenCalled()
       spy.mockRestore()
     })

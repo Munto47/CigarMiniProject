@@ -50,6 +50,11 @@ global.wx = {
   authorize: jest.fn(),
   requestPayment: jest.fn(),
   uploadFile: jest.fn(),
+  getFileSystemManager() {
+    return {
+      readFileSync: jest.fn(() => 'mock-base64-audio'),
+    }
+  },
 
   // Canvas / Media
   createSelectorQuery() {

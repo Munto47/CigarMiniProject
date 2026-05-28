@@ -25,11 +25,13 @@ Page({
     loading: false,
   },
 
-  onLoad() {
+  async onLoad() {
     if (!isLoggedIn()) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
-      setTimeout(() => wx.navigateBack(), 1000)
-      return
+      const loggedIn = await getApp().promptLogin({ message: '查看订单前请先登录' })
+      if (!loggedIn) {
+        setTimeout(() => wx.navigateBack(), 1000)
+        return
+      }
     }
     this._fetchOrders()
   },
