@@ -73,3 +73,10 @@ temp/
 project.config.json
 .miniprogram/
 .wechatide/
+
+# ===== 测试截图 / Playwright =====
+*.png
+*.jpg
+*.jpeg
+*.gif
+.playwright-mcp/
