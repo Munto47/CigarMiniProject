@@ -12,6 +12,10 @@ export class PrismaService
   constructor(config: ConfigService) {
     const pool = new Pool({
       connectionString: config.get<string>('DATABASE_URL'),
+      // 2C2G 服务器：5 个连接足够，防止 DB 侧连接数超限
+      max: 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
     });
     super({ adapter: new PrismaPg(pool) });
   }

@@ -6,10 +6,9 @@ import Redis from 'ioredis';
 export class RedisService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private readonly client: Redis;
-  private readonly subClient: Redis;
 
   constructor(private readonly config: ConfigService) {
-    const redisOpts = {
+    this.client = new Redis({
       host: config.get<string>('REDIS_HOST', 'localhost'),
       port: config.get<number>('REDIS_PORT', 6379),
       password: config.get<string>('REDIS_PASSWORD') || undefined,
@@ -17,10 +16,7 @@ export class RedisService implements OnModuleDestroy {
       maxRetriesPerRequest: 3,
       retryStrategy: (times: number) =>
         times > 10 ? null : Math.min(times * 200, 2000),
-    };
-
-    this.client = new Redis(redisOpts);
-    this.subClient = new Redis(redisOpts);
+    });
 
     this.client.on('connect', () => this.logger.log('Redis 已连接'));
     this.client.on('error', (err) => this.logger.error('Redis 连接错误', err));
@@ -28,7 +24,6 @@ export class RedisService implements OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.client.quit();
-    await this.subClient.quit();
   }
 
   // === String operations ===
@@ -68,7 +63,7 @@ export class RedisService implements OnModuleDestroy {
     return this.client.ttl(key);
   }
 
-  // === Set operations (for blacklists, etc.) ===
+  // === Set operations ===
 
   async sadd(key: string, ...members: string[]): Promise<number> {
     return this.client.sadd(key, ...members);
@@ -85,16 +80,12 @@ export class RedisService implements OnModuleDestroy {
   // === Lock helpers ===
 
   /** SET NX EX — returns true if lock acquired */
-  async setnx(
-    key: string,
-    value: string,
-    ttlSeconds: number,
-  ): Promise<boolean> {
+  async setnx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
     const result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
     return result === 'OK';
   }
 
-  /** Get the raw ioredis client (for advanced operations like pub/sub) */
+  /** Get the raw ioredis client (for advanced operations) */
   get raw(): Redis {
     return this.client;
   }

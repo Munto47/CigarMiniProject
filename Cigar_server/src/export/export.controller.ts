@@ -7,7 +7,6 @@ import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExportService } from './export.service';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { ErrorCode } from '../common/constants/error-codes';
 
@@ -18,7 +17,7 @@ export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
   @Get('orders')
-  @ApiOperation({ summary: '导出订单 Excel' })
+  @ApiOperation({ summary: '导出订单 Excel（流式）' })
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
   @RequirePermissions('order:export')
@@ -27,14 +26,11 @@ export class ExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const buffer = await this.exportService.exportOrders(startDate, endDate);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=orders.xlsx');
-    res.send(buffer);
+    await this.exportService.exportOrders(res, startDate, endDate);
   }
 
   @Get('transactions')
-  @ApiOperation({ summary: '导出储值流水 Excel' })
+  @ApiOperation({ summary: '导出储值流水 Excel（流式）' })
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
   @RequirePermissions('storedvalue:read')
@@ -43,20 +39,14 @@ export class ExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const buffer = await this.exportService.exportTransactions(startDate, endDate);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=transactions.xlsx');
-    res.send(buffer);
+    await this.exportService.exportTransactions(res, startDate, endDate);
   }
 
   @Get('cigars')
-  @ApiOperation({ summary: '导出雪茄库 Excel' })
+  @ApiOperation({ summary: '导出雪茄库 Excel（流式）' })
   @RequirePermissions('library:read')
   async exportCigars(@Res() res: Response) {
-    const buffer = await this.exportService.exportCigars();
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=cigars.xlsx');
-    res.send(buffer);
+    await this.exportService.exportCigars(res);
   }
 
   @Post('cigars/import')

@@ -112,8 +112,15 @@ export class LevelRecalcService {
 
       if (users.length === 0) break;
 
+      // ✅ 批量查询本批所有 memberProfile，替换循环内 N 次 findUnique
+      const userIds = users.map((u) => u.id);
+      const profiles = await this.prisma.memberProfile.findMany({
+        where: { userId: { in: userIds } },
+      });
+      const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+
       for (const user of users) {
-        const profile = await this.prisma.memberProfile.findUnique({ where: { userId: user.id } });
+        const profile = profileMap.get(user.id.toString());
         if (!profile) { processedUsers++; continue; }
 
         const points = levelType === 'recharge'
@@ -177,5 +184,8 @@ export class LevelRecalcService {
     });
 
     this.logger.log(`等级重算完成 job=${jobId}: ${affectedUsers}/${totalUsers} 用户受影响`);
+
+    // 任务完成 10 分钟后清理内存，避免长期驻留
+    setTimeout(() => this.progressMap.delete(jobId), 10 * 60 * 1000);
   }
 }

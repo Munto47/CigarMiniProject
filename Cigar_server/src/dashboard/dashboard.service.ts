@@ -8,13 +8,15 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview() {
-    const now = new Date();
-    // 使用北京时间当天 00:00:00，避免服务器 UTC 时区与北京时间差 8 小时
     const todayStart = beijingTodayStart();
+
+    // 计算本月起始（北京时间）
+    const now = new Date();
     now.setMinutes(now.getMinutes() + now.getTimezoneOffset() + 480);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset() - 480);
 
+    // ✅ 全部 16 个查询合并进一个 Promise.all，减少两次额外网络往返
     const [
       totalUsers,
       todayNewUsers,
@@ -23,11 +25,15 @@ export class DashboardService {
       todayOrders,
       monthOrders,
       pendingOrders,
+      completedOrders,
+      cancelledOrders,
+      refundedOrders,
       totalRevenueResult,
       todayRevenueResult,
       monthRevenueResult,
       totalProducts,
       activeProducts,
+      balanceResult,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
@@ -36,6 +42,9 @@ export class DashboardService {
       this.prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
       this.prisma.order.count({ where: { createdAt: { gte: monthStart } } }),
       this.prisma.order.count({ where: { status: 'pending' } }),
+      this.prisma.order.count({ where: { status: 'completed' } }),
+      this.prisma.order.count({ where: { status: 'cancelled' } }),
+      this.prisma.order.count({ where: { status: 'refunded' } }),
       this.prisma.paymentRecord.aggregate({
         _sum: { amountCents: true },
         where: { status: 'success' },
@@ -50,23 +59,12 @@ export class DashboardService {
       }),
       this.prisma.cigar.count(),
       this.prisma.cigar.count({ where: { status: 'active' } }),
+      this.prisma.memberProfile.aggregate({ _sum: { balanceCents: true } }),
     ]);
 
     const totalRevenue = totalRevenueResult._sum.amountCents ?? 0n;
     const todayRevenue = todayRevenueResult._sum.amountCents ?? 0n;
     const monthRevenue = monthRevenueResult._sum.amountCents ?? 0n;
-
-    // Completed/cancelled/refunded order stats
-    const [completedOrders, cancelledOrders, refundedOrders] = await Promise.all([
-      this.prisma.order.count({ where: { status: 'completed' } }),
-      this.prisma.order.count({ where: { status: 'cancelled' } }),
-      this.prisma.order.count({ where: { status: 'refunded' } }),
-    ]);
-
-    // Total balance across all users
-    const balanceResult = await this.prisma.memberProfile.aggregate({
-      _sum: { balanceCents: true },
-    });
     const totalBalance = balanceResult._sum.balanceCents ?? 0n;
 
     return {
@@ -118,7 +116,6 @@ export class DashboardService {
       orderBy: { createdAt: 'asc' },
     });
 
-    // Build trend map using local date strings
     const trendMap = new Map<string, { revenue: bigint; orders: number }>();
     for (let i = 0; i < days; i++) {
       const d = new Date(startDate);
@@ -172,7 +169,6 @@ export class DashboardService {
   }
 
   async getTopProducts(limit: number = 10) {
-    // Aggregate order_items to find top-selling products
     const items = await this.prisma.orderItem.groupBy({
       by: ['productId', 'nameSnapshot', 'productType'],
       _sum: { qty: true, actualAmountCents: true },

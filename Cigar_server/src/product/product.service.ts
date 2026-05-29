@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../infra/redis/redis.service';
 import { paginate } from '../common/dto/pagination.dto';
 import { centsToYuan } from '../common/utils/money';
 import { toBeijing } from '../common/utils/time';
@@ -11,9 +12,14 @@ import { UpdateDrinkDto } from './dto/update-drink.dto';
 import { QueryDrinkDto } from './dto/query-drink.dto';
 import { Prisma } from '@prisma/client';
 
+const RECOMMEND_CIGAR_CACHE_KEY = 'recommend:cigars:active';
+
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   // ==================== Cigar ====================
 
@@ -95,6 +101,7 @@ export class ProductService {
       },
       include: { category: true, cigarTags: { include: { tag: true } } },
     });
+    await this.redis.del(RECOMMEND_CIGAR_CACHE_KEY);
     return this.toCigarResponse(cigar);
   }
 
@@ -118,6 +125,7 @@ export class ProductService {
       include: { category: true, cigarTags: { include: { tag: true } } },
     });
 
+    await this.redis.del(RECOMMEND_CIGAR_CACHE_KEY);
     return this.toCigarResponse(cigar as Parameters<typeof this.toCigarResponse>[0]);
   }
 
@@ -126,6 +134,7 @@ export class ProductService {
       where: { id },
       data: { status: 'inactive', deletedAt: new Date() },
     });
+    await this.redis.del(RECOMMEND_CIGAR_CACHE_KEY);
   }
 
   // ==================== Drink ====================

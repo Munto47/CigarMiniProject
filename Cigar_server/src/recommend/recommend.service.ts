@@ -1,11 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../infra/redis/redis.service';
 import { centsToYuan } from '../common/utils/money';
 import type { AnswerItem } from './dto/recommend.dto';
 
+// 雪茄推荐数据集缓存 5 分钟，商品变更时由 product.service 主动失效
+const CIGAR_CACHE_KEY = 'recommend:cigars:active';
+const CIGAR_CACHE_TTL = 300;
+
+type CachedCigar = Awaited<ReturnType<RecommendService['loadActiveCigars']>>[number];
+
 @Injectable()
 export class RecommendService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * 规则引擎推荐
@@ -22,7 +32,7 @@ export class RecommendService {
     });
 
     for (const a of answers) {
-      const q = questions.find(q => q.id === BigInt(a.questionId));
+      const q = questions.find((q) => q.id === BigInt(a.questionId));
       if (!q) continue;
       const opts = q.options as any[];
       if (!opts || !opts[a.optionIndex]) continue;
@@ -34,26 +44,15 @@ export class RecommendService {
       }
     }
 
-    // 如果没有任何风味权重，返回热门雪茄
     if (flavorWeights.size === 0) {
       return this.fallbackRecommend(limit);
     }
 
-    // 2. 获取所有在售雪茄及其标签和配饮
-    const cigars = await this.prisma.cigar.findMany({
-      where: { status: 'active', deletedAt: null },
-      include: {
-        cigarTags: { include: { tag: true } },
-        reviews: { where: { status: 'visible', deletedAt: null }, select: { rating: true } },
-        pairings: {
-          include: { drink: true },
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
-    });
+    // 2. 获取在售雪茄（优先走 Redis 缓存，避免每次全量 JOIN）
+    const cigars = await this.getCachedActiveCigars();
 
     // 3. 计算每支雪茄的得分
-    const scored = cigars.map(cigar => {
+    const scored = cigars.map((cigar) => {
       let score = 0;
       const matchedTags: string[] = [];
 
@@ -61,7 +60,6 @@ export class RecommendService {
         const tag = ct.tag;
         if (!tag.enabled) continue;
 
-        // 基于 score_map 匹配用户风味偏好
         const scoreMap = tag.scoreMap as Record<string, number>;
         for (const [flavorKey, weight] of flavorWeights) {
           if (scoreMap[flavorKey]) {
@@ -73,77 +71,100 @@ export class RecommendService {
         }
       }
 
-      return {
-        cigar,
-        score,
-        matchedTags,
-      };
+      return { cigar, score, matchedTags };
     });
 
-    // 按得分降序，取前 limit
     scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, limit).filter(s => s.score > 0);
+    const top = scored.slice(0, limit).filter((s) => s.score > 0);
 
-    // 归一化：最高得分映射到 95%，其余等比缩放，下限 40%，上限 100%
     const maxScore = top.length > 0 ? top[0].score : 1;
     const toMatchPct = (score: number) =>
       Math.min(100, Math.max(40, Math.round((score / maxScore) * 95)));
 
-    // 4. 记录推荐日志
+    // 4. 记录推荐日志（异步，不阻塞响应）
     if (userId) {
-      await this.prisma.recommendLog.create({
-        data: {
-          userId,
-          answers: JSON.parse(JSON.stringify(answers)),
-          resultCigars: JSON.parse(JSON.stringify(top.map(s => ({
-            id: s.cigar.id.toString(),
-            name: s.cigar.name,
-            score: s.score,
-          })))),
-        },
-      });
+      this.prisma.recommendLog
+        .create({
+          data: {
+            userId,
+            answers: JSON.parse(JSON.stringify(answers)),
+            resultCigars: JSON.parse(
+              JSON.stringify(
+                top.map((s) => ({ id: s.cigar.id.toString(), name: s.cigar.name, score: s.score })),
+              ),
+            ),
+          },
+        })
+        .catch(() => {});
     }
 
-    // 5. 格式化返回
     return {
       total: top.length,
       fallback: false,
       answers,
-      list: top.map(s => ({
-        id: s.cigar.id.toString(),
-        name: s.cigar.name,
-        brand: s.cigar.brand,
-        spec: s.cigar.spec,
-        strength: s.cigar.strength,
-        flavorStart: s.cigar.flavorStart,
-        flavorMid: s.cigar.flavorMid,
-        flavorEnd: s.cigar.flavorEnd,
-        scenes: s.cigar.scenes,
-        priceCents: s.cigar.priceCents.toString(),
-        priceYuan: centsToYuan(s.cigar.priceCents),
-        memberPriceCents: s.cigar.memberPriceCents.toString(),
-        memberPriceYuan: centsToYuan(s.cigar.memberPriceCents),
-        thumbUrl: s.cigar.thumbUrl,
-        ratingAvg: s.cigar.ratingAvg.toString(),
-        ratingCount: s.cigar.ratingCount,
-        matchPct: toMatchPct(s.score),
-        matchTags: s.matchedTags,
-        pairings: (s.cigar as any).pairings?.map((p: any) => ({
-          id: p.drink.id.toString(),
-          name: p.drink.name,
-          categoryCode: p.drink.categoryCode,
-          priceYuan: Number(p.drink.memberPriceCents || p.drink.priceCents) / 100,
-          memberPriceCents: p.drink.memberPriceCents.toString(),
-          priceCents: p.drink.priceCents.toString(),
-          thumbUrl: p.drink.thumbUrl,
-          description: p.description ?? p.drink.description ?? null,
-          stockAvailable: p.drink.stock - p.drink.stockLocked,
-        })) ?? [],
+      list: top.map((s) => this.formatCigar(s.cigar, toMatchPct(s.score), s.matchedTags)),
+    };
+  }
+
+  /** 获取推荐问题列表 */
+  async getQuestions() {
+    const questions = await this.prisma.recommendQuestion.findMany({
+      where: { enabled: true },
+      orderBy: { position: 'asc' },
+    });
+
+    return {
+      questions: questions.map((q) => ({
+        id: q.id.toString(),
+        position: q.position,
+        title: q.title,
+        multi: q.multi,
+        options: q.options,
       })),
     };
   }
 
-  /** 无偏好时回退：返回评分最高的雪茄 */
+  /** 商品变更时主动失效缓存 */
+  async invalidateCigarCache() {
+    await this.redis.del(CIGAR_CACHE_KEY);
+  }
+
+  // ── 私有方法 ─────────────────────────────────────────────────────
+
+  private async getCachedActiveCigars(): Promise<CachedCigar[]> {
+    const cached = await this.redis.get(CIGAR_CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached, (_, v) => v);
+    }
+
+    const cigars = await this.loadActiveCigars();
+
+    // bigint 序列化为 string 存 Redis
+    const serialized = JSON.stringify(cigars, (_, v) =>
+      typeof v === 'bigint' ? v.toString() : v,
+    );
+    await this.redis.set(CIGAR_CACHE_KEY, serialized, CIGAR_CACHE_TTL);
+
+    return cigars;
+  }
+
+  private async loadActiveCigars() {
+    return this.prisma.cigar.findMany({
+      where: { status: 'active', deletedAt: null },
+      include: {
+        cigarTags: { include: { tag: true } },
+        reviews: {
+          where: { status: 'visible', deletedAt: null },
+          select: { rating: true },
+        },
+        pairings: {
+          include: { drink: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+  }
+
   private async fallbackRecommend(limit: number) {
     const cigars = await this.prisma.cigar.findMany({
       where: { status: 'active', deletedAt: null },
@@ -154,7 +175,7 @@ export class RecommendService {
     return {
       total: cigars.length,
       fallback: true,
-      list: cigars.map(c => ({
+      list: cigars.map((c) => ({
         id: c.id.toString(),
         name: c.name,
         brand: c.brand,
@@ -175,21 +196,52 @@ export class RecommendService {
     };
   }
 
-  /** 获取推荐问题列表 */
-  async getQuestions() {
-    const questions = await this.prisma.recommendQuestion.findMany({
-      where: { enabled: true },
-      orderBy: { position: 'asc' },
-    });
+  private formatCigar(cigar: CachedCigar, matchPct: number, matchTags: string[]) {
+    const priceCents = typeof cigar.priceCents === 'bigint'
+      ? cigar.priceCents
+      : BigInt(cigar.priceCents as string);
+    const memberPriceCents = typeof cigar.memberPriceCents === 'bigint'
+      ? cigar.memberPriceCents
+      : BigInt(cigar.memberPriceCents as string);
 
     return {
-      questions: questions.map(q => ({
-        id: q.id.toString(),
-        position: q.position,
-        title: q.title,
-        multi: q.multi,
-        options: q.options,
-      })),
+      id: cigar.id.toString(),
+      name: cigar.name,
+      brand: cigar.brand,
+      spec: cigar.spec,
+      strength: cigar.strength,
+      flavorStart: cigar.flavorStart,
+      flavorMid: cigar.flavorMid,
+      flavorEnd: cigar.flavorEnd,
+      scenes: cigar.scenes,
+      priceCents: priceCents.toString(),
+      priceYuan: centsToYuan(priceCents),
+      memberPriceCents: memberPriceCents.toString(),
+      memberPriceYuan: centsToYuan(memberPriceCents),
+      thumbUrl: cigar.thumbUrl,
+      ratingAvg: cigar.ratingAvg.toString(),
+      ratingCount: cigar.ratingCount,
+      matchPct,
+      matchTags,
+      pairings: (cigar as any).pairings?.map((p: any) => {
+        const drinkMemberPrice = typeof p.drink.memberPriceCents === 'bigint'
+          ? p.drink.memberPriceCents
+          : BigInt(p.drink.memberPriceCents as string);
+        const drinkPrice = typeof p.drink.priceCents === 'bigint'
+          ? p.drink.priceCents
+          : BigInt(p.drink.priceCents as string);
+        return {
+          id: p.drink.id.toString(),
+          name: p.drink.name,
+          categoryCode: p.drink.categoryCode,
+          priceYuan: Number(drinkMemberPrice || drinkPrice) / 100,
+          memberPriceCents: drinkMemberPrice.toString(),
+          priceCents: drinkPrice.toString(),
+          thumbUrl: p.drink.thumbUrl,
+          description: p.description ?? p.drink.description ?? null,
+          stockAvailable: p.drink.stock - p.drink.stockLocked,
+        };
+      }) ?? [],
     };
   }
 }

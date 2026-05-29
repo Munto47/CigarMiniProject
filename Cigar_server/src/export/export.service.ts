@@ -1,14 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { centsToYuan } from '../common/utils/money';
 import { toBeijing } from '../common/utils/time';
 import * as ExcelJS from 'exceljs';
 
+const EXPORT_BATCH = 500;
+
 @Injectable()
 export class ExportService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async exportOrders(startDate?: string, endDate?: string) {
+  // ── 流式导出：直接写 HTTP Response，峰值内存约 10MB ──────────────
+
+  async exportOrders(res: Response, startDate?: string, endDate?: string) {
     const where: any = {};
     if (startDate || endDate) {
       where.createdAt = {};
@@ -16,14 +21,10 @@ export class ExportService {
       if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    const orders = await this.prisma.order.findMany({
-      where,
-      include: { orderItems: true },
-      orderBy: { createdAt: 'desc' },
-      take: 10000,
-    });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=orders.xlsx');
 
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res });
     const sheet = workbook.addWorksheet('订单数据');
 
     sheet.columns = [
@@ -39,25 +40,39 @@ export class ExportService {
       { header: '支付时间', key: 'paidAt', width: 20 },
     ];
 
-    for (const o of orders) {
-      sheet.addRow({
-        orderNo: o.orderNo,
-        userName: o.userNameSnapshot,
-        status: o.status,
-        totalYuan: centsToYuan(o.totalCents),
-        actualPayYuan: centsToYuan(o.actualPayCents),
-        refundedYuan: centsToYuan(o.refundedAmountCents),
-        payMethod: o.payMethod ?? '-',
-        items: o.orderItems.map((i) => `${i.nameSnapshot} x${i.qty}`).join('; '),
-        createdAt: toBeijing(o.createdAt),
-        paidAt: o.paidAt ? toBeijing(o.paidAt) : '-',
+    let cursor: bigint | undefined;
+    while (true) {
+      const batch = await this.prisma.order.findMany({
+        where: { ...where, ...(cursor ? { id: { gt: cursor } } : {}) },
+        include: { orderItems: true },
+        orderBy: { id: 'asc' },
+        take: EXPORT_BATCH,
       });
+      if (batch.length === 0) break;
+
+      for (const o of batch) {
+        sheet.addRow({
+          orderNo: o.orderNo,
+          userName: o.userNameSnapshot,
+          status: o.status,
+          totalYuan: centsToYuan(o.totalCents),
+          actualPayYuan: centsToYuan(o.actualPayCents),
+          refundedYuan: centsToYuan(o.refundedAmountCents),
+          payMethod: o.payMethod ?? '-',
+          items: o.orderItems.map((i) => `${i.nameSnapshot} x${i.qty}`).join('; '),
+          createdAt: toBeijing(o.createdAt),
+          paidAt: o.paidAt ? toBeijing(o.paidAt) : '-',
+        }).commit();
+      }
+
+      if (batch.length < EXPORT_BATCH) break;
+      cursor = batch[batch.length - 1].id;
     }
 
-    return workbook.xlsx.writeBuffer();
+    await workbook.commit();
   }
 
-  async exportTransactions(startDate?: string, endDate?: string) {
+  async exportTransactions(res: Response, startDate?: string, endDate?: string) {
     const where: any = {};
     if (startDate || endDate) {
       where.createdAt = {};
@@ -65,14 +80,10 @@ export class ExportService {
       if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    const txs = await this.prisma.balanceTransaction.findMany({
-      where,
-      include: { user: { select: { nickname: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 10000,
-    });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=transactions.xlsx');
 
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res });
     const sheet = workbook.addWorksheet('储值流水');
 
     sheet.columns = [
@@ -87,34 +98,42 @@ export class ExportService {
       { header: '时间', key: 'createdAt', width: 20 },
     ];
 
-    for (const tx of txs) {
-      sheet.addRow({
-        userName: tx.user?.nickname ?? '-',
-        type: tx.type,
-        direction: tx.direction === 1 ? '收入' : '支出',
-        amountYuan: centsToYuan(tx.amountCents),
-        balanceAfterYuan: centsToYuan(tx.balanceAfterCents),
-        relatedType: tx.relatedType,
-        relatedNo: tx.relatedNo,
-        description: tx.description ?? '',
-        createdAt: toBeijing(tx.createdAt),
+    let cursor: bigint | undefined;
+    while (true) {
+      const batch = await this.prisma.balanceTransaction.findMany({
+        where: { ...where, ...(cursor ? { id: { gt: cursor } } : {}) },
+        include: { user: { select: { nickname: true } } },
+        orderBy: { id: 'asc' },
+        take: EXPORT_BATCH,
       });
+      if (batch.length === 0) break;
+
+      for (const tx of batch) {
+        sheet.addRow({
+          userName: tx.user?.nickname ?? '-',
+          type: tx.type,
+          direction: tx.direction === 1 ? '收入' : '支出',
+          amountYuan: centsToYuan(tx.amountCents),
+          balanceAfterYuan: centsToYuan(tx.balanceAfterCents),
+          relatedType: tx.relatedType,
+          relatedNo: tx.relatedNo,
+          description: tx.description ?? '',
+          createdAt: toBeijing(tx.createdAt),
+        }).commit();
+      }
+
+      if (batch.length < EXPORT_BATCH) break;
+      cursor = batch[batch.length - 1].id;
     }
 
-    return workbook.xlsx.writeBuffer();
+    await workbook.commit();
   }
 
-  async exportCigars() {
-    const cigars = await this.prisma.cigar.findMany({
-      include: {
-        category: { select: { name: true } },
-        cigarTags: { include: { tag: { select: { name: true } } } },
-      },
-      orderBy: [{ brand: 'asc' }, { name: 'asc' }],
-      take: 5000,
-    });
+  async exportCigars(res: Response) {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=cigars.xlsx');
 
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res });
     const sheet = workbook.addWorksheet('雪茄库');
 
     sheet.columns = [
@@ -132,25 +151,44 @@ export class ExportService {
       { header: '风味标签', key: 'tags', width: 30 },
     ];
 
-    for (const c of cigars) {
-      sheet.addRow({
-        brand: c.brand,
-        name: c.name,
-        model: c.model ?? '',
-        category: c.category?.name ?? '',
-        origin: c.origin ?? '',
-        year: c.year ?? '',
-        priceYuan: centsToYuan(c.priceCents),
-        memberPriceYuan: centsToYuan(c.memberPriceCents),
-        stock: c.stock,
-        ratingAvg: Number(c.ratingAvg).toFixed(1),
-        status: c.status === 'active' ? '在售' : '下架',
-        tags: c.cigarTags.map((t) => t.tag.name).join(', '),
+    let cursor: bigint | undefined;
+    while (true) {
+      const batch = await this.prisma.cigar.findMany({
+        where: { ...(cursor ? { id: { gt: cursor } } : {}) },
+        include: {
+          category: { select: { name: true } },
+          cigarTags: { include: { tag: { select: { name: true } } } },
+        },
+        orderBy: { id: 'asc' },
+        take: EXPORT_BATCH,
       });
+      if (batch.length === 0) break;
+
+      for (const c of batch) {
+        sheet.addRow({
+          brand: c.brand,
+          name: c.name,
+          model: c.model ?? '',
+          category: c.category?.name ?? '',
+          origin: c.origin ?? '',
+          year: c.year ?? '',
+          priceYuan: centsToYuan(c.priceCents),
+          memberPriceYuan: centsToYuan(c.memberPriceCents),
+          stock: c.stock,
+          ratingAvg: Number(c.ratingAvg).toFixed(1),
+          status: c.status === 'active' ? '在售' : '下架',
+          tags: c.cigarTags.map((t) => t.tag.name).join(', '),
+        }).commit();
+      }
+
+      if (batch.length < EXPORT_BATCH) break;
+      cursor = batch[batch.length - 1].id;
     }
 
-    return workbook.xlsx.writeBuffer();
+    await workbook.commit();
   }
+
+  // ── Excel 导入（数据量小，保持内存操作）──────────────────────────
 
   async importCigarsFromExcel(buffer: any): Promise<{
     total: number;
@@ -206,7 +244,7 @@ export class ExportService {
     }> = [];
 
     sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header
+      if (rowNumber === 1) return;
 
       const brand = String(row.getCell(1).value ?? '').trim();
       const name = String(row.getCell(2).value ?? '').trim();

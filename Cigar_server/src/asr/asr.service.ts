@@ -45,7 +45,8 @@ export class AsrService {
       );
     }
 
-    const dataLen = Buffer.from(audioBase64, 'base64').length;
+    // 用数学计算代替解码整个 Buffer 只为取长度
+    const dataLen = Math.floor((audioBase64.replace(/=+$/, '').length * 3) / 4);
 
     try {
       const response = await this.client.SentenceRecognition({

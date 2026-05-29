@@ -3,6 +3,20 @@ import { PrismaService } from '../prisma/prisma.service';
 import { centsToYuan } from '../common/utils/money';
 import { Prisma } from '@prisma/client';
 
+// Raw query result types
+type DailyRow = { date: string; revenue: bigint; cnt: bigint };
+type CategoryRow = {
+  category_code: string;
+  product_count: bigint;
+  sold_qty: bigint;
+  revenue: bigint;
+};
+type TierRow = {
+  tier_id: bigint;
+  order_count: bigint;
+  total_cents: bigint;
+};
+
 @Injectable()
 export class StatisticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -15,7 +29,7 @@ export class StatisticsService {
       if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    // Revenue by payment channel
+    // Revenue by channel
     const [balancePayments, wechatPayments, meituanPayments] = await Promise.all([
       this.prisma.paymentRecord.aggregate({
         _sum: { amountCents: true },
@@ -34,38 +48,35 @@ export class StatisticsService {
       }),
     ]);
 
-    // Revenue by day (last 30 days)
+    // ✅ 改为 SQL GROUP BY，不再把记录拉进 JS 内存
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const dailyPayments = await this.prisma.paymentRecord.findMany({
-      where: { status: 'success', createdAt: { gte: thirtyDaysAgo } },
-      select: { amountCents: true, createdAt: true },
-      orderBy: { createdAt: 'asc' },
-    });
+    const dailyRows = await this.prisma.$queryRaw<DailyRow[]>`
+      SELECT
+        TO_CHAR(created_at AT TIME ZONE 'UTC+8', 'YYYY-MM-DD') AS date,
+        SUM(amount_cents)  AS revenue,
+        COUNT(*)::bigint   AS cnt
+      FROM payment_records
+      WHERE status = 'success'
+        AND created_at >= ${thirtyDaysAgo}
+      GROUP BY TO_CHAR(created_at AT TIME ZONE 'UTC+8', 'YYYY-MM-DD')
+      ORDER BY date
+    `;
 
-    const dailyMap = new Map<string, { revenue: bigint; count: number }>();
-    for (const p of dailyPayments) {
-      const key = p.createdAt.toISOString().slice(0, 10);
-      const entry = dailyMap.get(key) ?? { revenue: 0n, count: 0 };
-      entry.revenue += p.amountCents;
-      entry.count += 1;
-      dailyMap.set(key, entry);
-    }
-
-    // Recharge stats
-    const rechargeResult = await this.prisma.rechargeOrder.aggregate({
-      _sum: { totalCents: true },
-      _count: true,
-      where: { status: 'success' },
-    });
-
-    // Refund stats
-    const refundResult = await this.prisma.refundRecord.aggregate({
-      _sum: { amountCents: true },
-      _count: true,
-      where: { status: 'success' },
-    });
+    // Recharge & refund stats
+    const [rechargeResult, refundResult] = await Promise.all([
+      this.prisma.rechargeOrder.aggregate({
+        _sum: { totalCents: true },
+        _count: true,
+        where: { status: 'success' },
+      }),
+      this.prisma.refundRecord.aggregate({
+        _sum: { amountCents: true },
+        _count: true,
+        where: { status: 'success' },
+      }),
+    ]);
 
     return {
       byChannel: {
@@ -85,14 +96,12 @@ export class StatisticsService {
           amountYuan: centsToYuan(meituanPayments._sum.amountCents ?? 0n),
         },
       },
-      daily: Array.from(dailyMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, data]) => ({
-          date,
-          revenueCents: data.revenue.toString(),
-          revenueYuan: centsToYuan(data.revenue),
-          orders: data.count,
-        })),
+      daily: dailyRows.map((r) => ({
+        date: r.date,
+        revenueCents: r.revenue.toString(),
+        revenueYuan: centsToYuan(r.revenue),
+        orders: Number(r.cnt),
+      })),
       recharge: {
         totalCount: rechargeResult._count,
         totalCents: (rechargeResult._sum.totalCents ?? 0n).toString(),
@@ -107,103 +116,74 @@ export class StatisticsService {
   }
 
   async getCategoryStats() {
-    // Get cigars with their categories
-    const cigars = await this.prisma.cigar.findMany({
-      select: { id: true, name: true, categoryCode: true },
-    });
+    // ✅ 改为单条 SQL JOIN + GROUP BY，不再全量加载雪茄到内存做 O(n×m) 扫描
+    const rows = await this.prisma.$queryRaw<CategoryRow[]>`
+      SELECT
+        c.category_code,
+        COUNT(DISTINCT c.id)::bigint             AS product_count,
+        COALESCE(SUM(oi.qty), 0)::bigint         AS sold_qty,
+        COALESCE(SUM(oi.actual_amount_cents), 0) AS revenue
+      FROM cigars c
+      LEFT JOIN order_items oi
+        ON oi.product_id = c.id
+       AND oi.product_type = 'cigar'
+      WHERE c.deleted_at IS NULL
+      GROUP BY c.category_code
+      ORDER BY revenue DESC
+    `;
 
-    const cigarIds = cigars.map((c) => c.id);
-
-    // Aggregate order items for these cigars
-    const items = await this.prisma.orderItem.groupBy({
-      by: ['productId'],
-      _sum: { qty: true, actualAmountCents: true },
-      where: { productType: 'cigar', productId: { in: cigarIds } },
-    });
-
-    // Build category stats
-    const catMap = new Map<string, { name: string; qty: number; revenue: bigint; productCount: number }>();
-    for (const c of cigars) {
-      const entry = catMap.get(c.categoryCode) ?? {
-        name: c.categoryCode,
-        qty: 0,
-        revenue: 0n,
-        productCount: 0,
-      };
-      entry.productCount += 1;
-      catMap.set(c.categoryCode, entry);
-    }
-
-    for (const item of items) {
-      const cigar = cigars.find((c) => c.id === item.productId);
-      if (cigar) {
-        const entry = catMap.get(cigar.categoryCode);
-        if (entry) {
-          entry.qty += item._sum.qty ?? 0;
-          entry.revenue += item._sum.actualAmountCents ?? 0n;
-        }
-      }
-    }
-
-    return Array.from(catMap.entries())
-      .sort(([, a], [, b]) => Number(b.revenue - a.revenue))
-      .map(([code, data]) => ({
-        categoryCode: code,
-        productCount: data.productCount,
-        soldQty: data.qty,
-        revenueCents: data.revenue.toString(),
-        revenueYuan: centsToYuan(data.revenue),
-      }));
+    return rows.map((r) => ({
+      categoryCode: r.category_code,
+      productCount: Number(r.product_count),
+      soldQty: Number(r.sold_qty),
+      revenueCents: r.revenue.toString(),
+      revenueYuan: centsToYuan(r.revenue),
+    }));
   }
 
   async getUserStats() {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    // Daily new users for last 30 days
-    const newUsers = await this.prisma.user.findMany({
-      where: { createdAt: { gte: thirtyDaysAgo } },
-      select: { createdAt: true },
-      orderBy: { createdAt: 'asc' },
-    });
+    // ✅ 改为 SQL GROUP BY，不再把所有用户记录拉进 JS 内存
+    const [dailyRows, rechargeLevelDist, consumeLevelDist, activeUsers, withBalance, totalUsers] =
+      await Promise.all([
+        this.prisma.$queryRaw<Array<{ date: string; cnt: bigint }>>`
+          SELECT
+            TO_CHAR(created_at AT TIME ZONE 'UTC+8', 'YYYY-MM-DD') AS date,
+            COUNT(*)::bigint AS cnt
+          FROM users
+          WHERE created_at >= ${thirtyDaysAgo}
+          GROUP BY TO_CHAR(created_at AT TIME ZONE 'UTC+8', 'YYYY-MM-DD')
+          ORDER BY date
+        `,
+        this.prisma.memberProfile.groupBy({
+          by: ['rechargeLevel'],
+          _count: true,
+          orderBy: { rechargeLevel: 'asc' },
+        }),
+        this.prisma.memberProfile.groupBy({
+          by: ['consumptionLevel'],
+          _count: true,
+          orderBy: { consumptionLevel: 'asc' },
+        }),
+        this.prisma.order.groupBy({
+          by: ['userId'],
+          where: { createdAt: { gte: thirtyDaysAgo } },
+        }),
+        this.prisma.memberProfile.count({ where: { balanceCents: { gt: 0 } } }),
+        this.prisma.user.count(),
+      ]);
 
+    // 补全缺失日期（SQL 只返回有数据的天）
     const dailyMap = new Map<string, number>();
     for (let i = 0; i < 30; i++) {
       const d = new Date(thirtyDaysAgo);
       d.setDate(d.getDate() + i);
       dailyMap.set(d.toISOString().slice(0, 10), 0);
     }
-    for (const u of newUsers) {
-      const key = u.createdAt.toISOString().slice(0, 10);
-      dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
+    for (const r of dailyRows) {
+      dailyMap.set(r.date, Number(r.cnt));
     }
-
-    // Level distribution
-    const [rechargeLevelDist, consumeLevelDist] = await Promise.all([
-      this.prisma.memberProfile.groupBy({
-        by: ['rechargeLevel'],
-        _count: true,
-        orderBy: { rechargeLevel: 'asc' },
-      }),
-      this.prisma.memberProfile.groupBy({
-        by: ['consumptionLevel'],
-        _count: true,
-        orderBy: { consumptionLevel: 'asc' },
-      }),
-    ]);
-
-    // Active users (placed orders in last 30 days)
-    const activeUsers = await this.prisma.order.groupBy({
-      by: ['userId'],
-      where: { createdAt: { gte: thirtyDaysAgo } },
-    });
-
-    // Users with balance
-    const withBalance = await this.prisma.memberProfile.count({
-      where: { balanceCents: { gt: 0 } },
-    });
-
-    const totalUsers = await this.prisma.user.count();
 
     return {
       totalUsers,
@@ -213,78 +193,68 @@ export class StatisticsService {
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, count]) => ({ date, count })),
       levelDistribution: {
-        recharge: rechargeLevelDist.map((r) => ({
-          level: r.rechargeLevel,
-          count: r._count,
-        })),
-        consumption: consumeLevelDist.map((r) => ({
-          level: r.consumptionLevel,
-          count: r._count,
-        })),
+        recharge: rechargeLevelDist.map((r) => ({ level: r.rechargeLevel, count: r._count })),
+        consumption: consumeLevelDist.map((r) => ({ level: r.consumptionLevel, count: r._count })),
       },
     };
   }
 
   async getStoredValueStats() {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    // Recharge stats
-    const [rechargeTotal, rechargeMonth] = await Promise.all([
-      this.prisma.rechargeOrder.aggregate({
-        _sum: { totalCents: true, amountCents: true, bonusCents: true },
-        _count: true,
-        where: { status: 'success' },
-      }),
-      this.prisma.rechargeOrder.aggregate({
-        _sum: { totalCents: true },
-        _count: true,
-        where: { status: 'success', createdAt: { gte: thirtyDaysAgo } },
-      }),
-    ]);
+    const [rechargeTotal, rechargeMonth, consumeTotal, consumeMonth, balanceResult, tiers, tierRows] =
+      await Promise.all([
+        this.prisma.rechargeOrder.aggregate({
+          _sum: { totalCents: true, amountCents: true, bonusCents: true },
+          _count: true,
+          where: { status: 'success' },
+        }),
+        this.prisma.rechargeOrder.aggregate({
+          _sum: { totalCents: true },
+          _count: true,
+          where: { status: 'success', createdAt: { gte: thirtyDaysAgo } },
+        }),
+        this.prisma.balanceTransaction.aggregate({
+          _sum: { amountCents: true },
+          _count: true,
+          where: { type: 'consume' },
+        }),
+        this.prisma.balanceTransaction.aggregate({
+          _sum: { amountCents: true },
+          _count: true,
+          where: { type: 'consume', createdAt: { gte: thirtyDaysAgo } },
+        }),
+        this.prisma.memberProfile.aggregate({ _sum: { balanceCents: true } }),
+        this.prisma.rechargeTier.findMany({
+          select: { id: true, amountCents: true, displayName: true },
+          orderBy: { amountCents: 'asc' },
+        }),
+        // ✅ 一条 SQL GROUP BY 替换 N 条 aggregate
+        this.prisma.$queryRaw<TierRow[]>`
+          SELECT
+            tier_id,
+            COUNT(*)::bigint      AS order_count,
+            SUM(total_cents)      AS total_cents
+          FROM recharge_orders
+          WHERE status = 'success' AND tier_id IS NOT NULL
+          GROUP BY tier_id
+        `,
+      ]);
 
-    // Consumption from balance transactions
-    const [consumeTotal, consumeMonth] = await Promise.all([
-      this.prisma.balanceTransaction.aggregate({
-        _sum: { amountCents: true },
-        _count: true,
-        where: { type: 'consume' },
-      }),
-      this.prisma.balanceTransaction.aggregate({
-        _sum: { amountCents: true },
-        _count: true,
-        where: { type: 'consume', createdAt: { gte: thirtyDaysAgo } },
-      }),
-    ]);
+    const tierUsageMap = new Map(tierRows.map((r) => [r.tier_id.toString(), r]));
 
-    // Total balance in system
-    const balanceResult = await this.prisma.memberProfile.aggregate({
-      _sum: { balanceCents: true },
-    });
-
-    // Tier usage
-    const tiers = await this.prisma.rechargeTier.findMany({
-      select: { id: true, amountCents: true, displayName: true },
-      orderBy: { amountCents: 'asc' },
-    });
-
-    const tierUsagePromises = tiers.map(async (tier) => {
-      const agg = await this.prisma.rechargeOrder.aggregate({
-        _count: true,
-        _sum: { totalCents: true },
-        where: { status: 'success', tierId: tier.id },
-      });
+    const tierUsage = tiers.map((tier) => {
+      const row = tierUsageMap.get(tier.id.toString());
       return {
         tierId: tier.id.toString(),
         displayName: tier.displayName ?? `${Number(tier.amountCents) / 100}元`,
         amountCents: tier.amountCents.toString(),
         amountYuan: centsToYuan(tier.amountCents),
-        orderCount: agg._count,
-        totalCents: (agg._sum.totalCents ?? 0n).toString(),
-        totalYuan: centsToYuan(agg._sum.totalCents ?? 0n),
+        orderCount: row ? Number(row.order_count) : 0,
+        totalCents: row ? row.total_cents.toString() : '0',
+        totalYuan: centsToYuan(row?.total_cents ?? 0n),
       };
     });
-    const tierUsage = await Promise.all(tierUsagePromises);
 
     return {
       recharge: {
